@@ -9,4 +9,9 @@
     <p class="lead">Temp-placeholder text</p>
 </div>
 
+<h3>Registered Users</h3>
+{% for account in accounts %}
+    <p>{{account.username}}</p>
+{% endfor %}
+
 {% endblock content %}

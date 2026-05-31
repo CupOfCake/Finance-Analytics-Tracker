@@ -35,6 +35,7 @@ INSTALLED_APPS = [
 
     # Custom apps
     'core',
+    'account',
 
     # Default Django apps
     'django.contrib.admin',
@@ -71,6 +72,8 @@ TEMPLATES = [
         },
     },
 ]
+
+AUTH_USER_MODEL = 'account.Account'
 
 WSGI_APPLICATION = 'mysite.wsgi.application'
 
