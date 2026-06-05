@@ -4,7 +4,7 @@
 
 
 <style>
-    /* Import modern font (same as reference) */
+    /* Import modern font */
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
     * {
@@ -15,12 +15,12 @@
 
     body {
         font-family: 'Poppins', sans-serif;
-        background: linear-gradient(135deg, #f5f7fa 0%, #e9edf2 100%);
+        background: #f0f2f5;
         min-height: 100vh;
     }
 
     .ftco-section {
-        padding: 4rem 0;
+        padding: clamp(2rem, 6vw, 4rem) 0;
     }
 
     /* Main card container */
@@ -31,37 +31,49 @@
         background: #fff;
     }
 
-    /* Right side – Welcome panel (sign‑up) */
-	.text-wrap {
-		overflow: hidden;          /* keeps pseudo inside rounded corners */
-	}
+    /* Right side – Welcome panel */
+    .text-wrap {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        position: relative;
+        min-height: 550px;
+        overflow: hidden;
+        flex: 1;
+        width: auto;
+    }
 
-    /* Subtle geometric overlay (like original) */
-	.text-wrap::after {
-		left: 0;
-		right: 0;                  /* instead of width:100% – ensures full coverage */
-		width: auto;
-		background-size: 40px 40px;   /* better tile size for the pattern */
-		background-repeat: repeat;
-		background-position: top left;
-	}
+    /* Gradient overlay */
+    .text-wrap::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+        pointer-events: none;
+    }
 
     .text-wrap h2 {
         font-weight: 700;
         font-size: 2rem;
         margin-bottom: 1rem;
+        position: relative;
+        z-index: 1;
     }
 
     .text-wrap p {
         font-size: 1rem;
-        opacity: 0.85;
+        opacity: 0.9;
         margin-bottom: 1.5rem;
+        position: relative;
+        z-index: 1;
     }
 
-    /* Sign Up button on the right panel */
+    /* Sign Up button */
     .btn-white {
         background: transparent;
-        border: 2px solid rgba(255,255,255,0.6);
+        border: 2px solid rgba(255,255,255,0.8);
         border-radius: 40px;
         padding: 0.6rem 1.8rem;
         font-weight: 600;
@@ -69,18 +81,22 @@
         letter-spacing: 1px;
         transition: 0.3s;
         color: white;
+        position: relative;
+        z-index: 1;
+        display: inline-block;
+        text-decoration: none;
     }
 
     .btn-white:hover {
         background: white;
-        color: #2c3e50;
+        color: #667eea;
         border-color: white;
         transform: translateY(-2px);
     }
 
     /* Left side – Login form panel */
     .login-wrap {
-        padding: 2rem 2rem !important;
+        padding: 2rem !important;
         background: white;
     }
 
@@ -88,12 +104,14 @@
         font-weight: 700;
         color: #1e2a36;
         font-size: 1.8rem;
-        letter-spacing: -0.5px;
+        margin-bottom: 1.5rem;
     }
 
-    /* Social media icons (Facebook + Twitter – you can replace Twitter with Google later) */
+    /* Social media icons */
     .social-media {
         gap: 10px;
+        margin: 0;
+        padding: 0;
     }
 
     .social-icon {
@@ -105,12 +123,15 @@
         transition: 0.25s ease;
         text-decoration: none;
         font-size: 1.2rem;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
     }
 
     .social-icon:hover {
-        background: #e2e8f0;
+        background: #667eea;
+        color: white;
         transform: translateY(-3px);
-        color: #1e2a36;
     }
 
     /* Form labels */
@@ -134,17 +155,18 @@
         font-size: 0.95rem;
         transition: 0.2s;
         box-shadow: none;
+        width: 100%;
     }
 
     .form-control:focus {
-        border-color: #2c3e50;
-        box-shadow: 0 0 0 4px rgba(44, 62, 80, 0.1);
+        border-color: #667eea;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
         outline: none;
     }
 
     /* Sign In button */
     .btn-primary {
-        background: #1e2a36;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         border: none;
         border-radius: 40px;
         height: 52px;
@@ -154,12 +176,13 @@
         font-size: 0.9rem;
         transition: 0.25s;
         color: white;
+        width: 100%;
+        cursor: pointer;
     }
 
     .btn-primary:hover {
-        background: #2c3e50;
         transform: translateY(-2px);
-        box-shadow: 0 10px 20px -5px rgba(0,0,0,0.2);
+        box-shadow: 0 10px 20px -5px rgba(102, 126, 234, 0.4);
     }
 
     /* Remember me + Forgot password row */
@@ -175,54 +198,62 @@
     .checkbox-wrap input {
         width: 18px;
         height: 18px;
-        accent-color: #1e2a36;
+        accent-color: #667eea;
         margin: 0;
     }
 
     .text-md-right a {
-        color: #4a5568;
+        color: #667eea;
         text-decoration: none;
         font-size: 0.85rem;
         transition: 0.2s;
     }
 
     .text-md-right a:hover {
-        color: #1e2a36;
+        color: #764ba2;
         text-decoration: underline;
     }
 
-    /* Adjust spacing for form groups */
-    .form-group.mb-3 {
-        margin-bottom: 1.2rem !important;
+    /* Form spacing */
+    .form-group {
+        margin-bottom: 1.2rem;
     }
 
-    /* Responsive touch-ups */
-@media (min-width: 768px) and (max-width: 999.98px) {
-    /* Override Bootstrap’s full-width column to a centered, narrower one */
-    .row.justify-content-center > .col-md-12.col-lg-10 {
-        flex: 0 0 83.33333%;    /* 10 out of 12 columns */
-        max-width: 83.33333%;
-        margin-left: auto;
-        margin-right: auto;
+    /* Responsive touch-ups - KEPT THE SCALING FIX THAT WORKS */
+    @media (min-width: 768px) and (max-width: 999.98px) {
+        /* Override Bootstrap's full-width column to a centered, narrower one */
+        .row.justify-content-center > .col-md-12.col-lg-10 {
+            flex: 0 0 83.33333%;
+            max-width: 83.33333%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Ensure the .wrap doesn't add extra side margins */
+        .wrap {
+            margin-left: 0;
+            margin-right: 0;
+        }
     }
 
-    /* Ensure the .wrap doesn’t add extra side margins */
-    .wrap {
-        margin-left: 0;
-        margin-right: 0;
+    /* Mobile responsive */
+    @media (max-width: 767px) {
+       
+        .text-wrap {
+            min-height: auto;
+            padding: 2rem !important;
+        }
+        
+        .login-wrap {
+            padding: 1.5rem !important;
+        }
     }
 
-    /* Optional: reduce section padding on medium screens for better fit */
-    .ftco-section {
-        padding: 2rem 1rem;
+    /* Keep container padding on all screen sizes */
+    .container {
+        padding-left: 15px;
+        padding-right: 15px;
     }
-}
-
-/* Extra safety: keep container padding on all screen sizes */
-.container {
-    padding-left: 15px;
-    padding-right: 15px;
-}
 </style>
 
     <section class="ftco-section">
