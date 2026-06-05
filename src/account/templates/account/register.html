@@ -2,7 +2,7 @@
 
 {% block content %}
 
-<h2>Register</h2>
+<!-- <h2>Register</h2>
 <form method="POST">
     {% csrf_token %}
 
@@ -23,6 +23,342 @@
     {{ form.as_p }}
 
 
-    <button type="submit">Register</button>
+    <button type="submit">Register</button> -->
+
+<!-- new styling: -->
+
+<style>
+    /* Import modern font */
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: 'Poppins', sans-serif;
+        background: #f0f2f5;
+        min-height: 100vh;
+    }
+
+    .ftco-section {
+        padding: clamp(2rem, 6vw, 4rem) 0;
+    }
+
+    /* Main card container */
+    .wrap {
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        background: #fff;
+    }
+
+    /* Right side – Welcome panel */
+    .text-wrap {
+        background: linear-gradient(135deg, #23adad 0%, #00555a 100%);
+        color: white;
+        position: relative;
+        min-height: 550px;
+        overflow: hidden;
+        flex: 1;
+        width: auto;
+    }
+
+    /* Gradient overlay */
+    .text-wrap::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, #23adad 0%, #00555a 100%);
+        pointer-events: none;
+    }
+
+    .text-wrap h2 {
+        font-weight: 700;
+        font-size: 2rem;
+        margin-bottom: 1rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .text-wrap p {
+        font-size: 1rem;
+        opacity: 0.9;
+        margin-bottom: 1.5rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Sign Up button */
+    .btn-white {
+        background: transparent;
+        border: 2px solid rgba(255,255,255,0.8);
+        border-radius: 40px;
+        padding: 0.6rem 1.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        transition: 0.3s;
+        color: white;
+        position: relative;
+        z-index: 1;
+        display: inline-block;
+        text-decoration: none;
+    }
+
+    .btn-white:hover {
+        background: white;
+        color: #008080;
+        border-color: white;
+        transform: translateY(-2px);
+    }
+
+    /* Left side – Login form panel */
+    .login-wrap {
+        padding: 2rem !important;
+        background: white;
+    }
+
+    .login-wrap h3 {
+        font-weight: 700;
+        color: #1e2a36;
+        font-size: 1.8rem;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Social media icons */
+    .social-media {
+        gap: 10px;
+        margin: 0;
+        padding: 0;
+    }
+
+    .social-icon {
+        width: 42px;
+        height: 42px;
+        background: #f0f2f5;
+        border-radius: 50%;
+        color: #4a5568;
+        transition: 0.25s ease;
+        text-decoration: none;
+        font-size: 1.2rem;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .social-icon:hover {
+        background: #008080;
+        color: white;
+        transform: translateY(-3px);
+    }
+
+    /* Form labels */
+    .label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #4a5568;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    /* Input fields */
+    .form-control {
+        height: 52px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        background: #fff;
+        padding: 0.5rem 1rem;
+        font-size: 0.95rem;
+        transition: 0.2s;
+        box-shadow: none;
+        width: 100%;
+    }
+
+    .form-control:focus {
+        border-color: #008080;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        outline: none;
+    }
+
+    /* Sign In button */
+    .btn-primary {
+        background: linear-gradient(135deg, #23adad 0%, #00555a 100%);
+        border: none;
+        border-radius: 40px;
+        height: 52px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-size: 0.9rem;
+        transition: 0.25s;
+        color: white;
+        width: 100%;
+        cursor: pointer;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px -5px rgba(102, 126, 234, 0.4);
+    }
+
+    /* Remember me + Forgot password row */
+    .checkbox-wrap {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        color: #4a5568;
+    }
+
+    .checkbox-wrap input {
+        width: 18px;
+        height: 18px;
+        accent-color: #008080;
+        margin: 0;
+    }
+
+    .text-md-right a {
+        color: #008080;
+        text-decoration: none;
+        font-size: 0.85rem;
+        transition: 0.2s;
+    }
+
+    .text-md-right a:hover {
+        color: #008080;
+        text-decoration: underline;
+    }
+
+    /* Form spacing */
+    .form-group {
+        margin-bottom: 1.2rem;
+    }
+
+    @media (min-width: 768px) and (max-width: 999.98px) {
+        /* Override Bootstrap's full-width column to a centered, narrower one */
+        .row.justify-content-center > .col-md-12.col-lg-10 {
+            flex: 0 0 83.33333%;
+            max-width: 83.33333%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Ensure the .wrap doesn't add extra side margins */
+        .wrap {
+            margin-left: 0;
+            margin-right: 0;
+        }
+    }
+
+    /* Mobile responsive */
+    @media (max-width: 767px) {
+       
+        .text-wrap {
+            min-height: auto;
+            padding: 2rem !important;
+        }
+        
+        .login-wrap {
+            padding: 1.5rem !important;
+        }
+    }
+
+    /* Keep container padding on all screen sizes */
+    .container {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+</style>
+
+    <section class="ftco-section">
+		<div class="container">
+			<div class="row justify-content-center">
+				<div class="col-md-12 col-lg-10">
+					<div class="wrap d-md-flex">
+						<div class="text-wrap p-4 p-lg-5 text-center d-flex align-items-center order-md-last">
+							<div class="text w-100">
+								<h2>Welcome</h2>
+								<p>Already have an account?</p>
+								<a href="{% url 'login' %}" class="btn btn-white btn-outline-white">Sign In</a>
+							</div>
+						</div>
+							<div class="login-wrap p-4 p-lg-5">
+								<div class="d-flex">
+									<div class="w-100">
+										<h3 class="mb-4">Sign Up</h3>
+									</div>
+									<div class="w-100">
+										<p class="social-media d-flex justify-content-end">
+											<a href="#" class="social-icon d-flex align-items-center justify-content-center"><span class="fa fa-facebook"></span></a>
+											<a href="#" class="social-icon d-flex align-items-center justify-content-center"><span class="fa fa-twitter"></span></a>
+										</p>
+									</div>
+								</div>
+
+								<form action="#" method="POST" class="signin-form">
+									{% csrf_token %}
+                                    <div class="form-group mb-3">
+										<label class="label" for="username">Username</label>
+										<input type="text" name="username" class="form-control" placeholder="Your Username" id="username">
+										{% if login_form.username.errors %}
+											<div>
+												<p style="color: red;">{{ login_form.username.errors|striptags }}</p>
+											</div>
+										{% endif %}
+									</div>
+									<div class="form-group mb-3">
+										<label class="label" for="email">Email</label>
+										<input type="email" name="email" class="form-control" placeholder="your-email@gmail.com" id="username">
+										{% if login_form.email.errors %}
+											<div>
+												<p style="color: red;">{{ login_form.email.errors|striptags }}</p>
+											</div>
+										{% endif %}
+									</div>
+									<div class="form-group mb-3">
+										<label class="label" for="password1">Password</label>
+										<input type="password" name="password1" class="form-control" placeholder="Your Password" id="password1">
+										{% if login_form.password1.errors %}
+											<div>
+												<p style="color: red;">{{ login_form.password1.errors|striptags }}</p>
+											</div>
+										{% endif %}
+									</div>
+                                    <div class="form-group mb-3">
+										<label class="label" for="password2">Confirm Password</label>
+										<input type="password" name="password2" class="form-control" placeholder="Confirm Your Password" id="password2">
+										{% if login_form.password2.errors %}
+											<div>
+												<p style="color: red;">{{ login_form.password2.errors|striptags }}</p>
+											</div>
+										{% endif %}
+									</div>
+
+									{% if login_form.non_field_errors %}
+										<p style="color: red;">{{ login_form.non_field_errors|striptags }}</p>
+									{% endif %}
+
+									<div class="form-group">
+										<button type="submit" class="form-control btn btn-primary submit px-3">Sign Up</button>
+									</div>
+									<div class="form-group d-md-flex">
+									</div>
+								</form> 
+							</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+
 
 {% endblock content %}
