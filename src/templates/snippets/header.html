@@ -19,6 +19,10 @@
     min-width: 220px;
     }
 
+    .site-title {
+        margin-right: auto;
+    }
+
     .border-top { border-top: 1px solid #e5e5e5; }
     .border-bottom { border-bottom: 1px solid #e5e5e5; }
 
@@ -26,7 +30,7 @@
 </style>
 
 <div class="d-flex flex-column flex-md-row align-items-center p-3 px-md-4 mb-3 bg-white border-bottom box-shadow">
-    <h5 class="my-0 mr-md-auto font-weight-normal">
+    <h5 class="site-title my-0 mr-md-auto font-weight-normal">
         {% if request.user.is_authenticated %}
             Hello, {{request.user.username}}
         {% else %}
@@ -40,7 +44,7 @@
         <a class="p-2 text-dark" href="{% url 'logout' %}">Logout</a>
     {% else %}
         <a class="p-2 text-dark" href="{% url 'home' %}">Home</a>
-        <a class="p-2 text-dark" href="{% url 'login' %}">Login</a>
+        <a class="p-2 text-dark" href="{% url 'login' %}">Sign In</a>
         <a class="btn btn-outline-primary" href="{% url 'register' %}">Register</a>
     {% endif %}
 </nav>
