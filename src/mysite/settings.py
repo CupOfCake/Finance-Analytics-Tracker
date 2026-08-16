@@ -29,6 +29,11 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 
+if DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' # for testing email functionality, prints emails to console instead of sending them
+#else:
+    #prod variables go here
+
 # Application definition
 
 INSTALLED_APPS = [
