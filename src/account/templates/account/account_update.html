@@ -304,6 +304,26 @@
                             {% endif %}
                         </div>
 
+                        <!-- Partner -->
+                        <div class="form-group">
+                            <label class="label" for="partner">Partner (for 50/50 splits)</label>
+                            <select name="partner" id="partner" class="form-control">
+                                <option value="">No partner</option>
+                                {% for user in all_users %}
+                                    <option value="{{ user.id }}" {% if account_form.partner.value == user.id %}selected{% endif %}>
+                                        {{ user.username }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            {% if account_form.partner.errors %}
+                                <ul class="errorlist">
+                                    {% for error in account_form.partner.errors %}
+                                        <li>{{ error|striptags }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+
                         <!-- Non-field errors -->
                         {% if account_form.non_field_errors %}
                             <div class="non-field-error">

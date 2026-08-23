@@ -72,15 +72,13 @@ class Transaction(models.Model):
         elif count == 2:
             first = self.splits.first()
             last = self.splits.last()
-            if first.amount == last.amount:
+            # Allow difference of 1 (rounding) for 50/50
+            if abs(first.amount - last.amount) <= 1:
                 return '5050'
             else:
                 return 'split'
         else:
             return 'split'
-
-    def __str__(self):
-        return super().__str__()
 
     def get_split_summary(self):
         """Return a string summary of the split, or None if only one split."""
@@ -94,13 +92,16 @@ class Transaction(models.Model):
             if split.user == current_user:
                 name = 'me'
             else:
-                # Use first three letters of the username, or full if shorter
                 name = split.user.username[:3] if len(split.user.username) >= 3 else split.user.username
             items.append((name, split.amount))
 
         # Sort: 'me' first, then alphabetically by name
         items.sort(key=lambda x: (x[0] != 'me', x[0]))
         return ' | '.join(f'{name}: {amount}' for name, amount in items)
+    
+    def __str__(self):
+        return super().__str__()
+
 
 @receiver(post_delete, sender=Transaction)
 def submission_delete(sender, instance, *args, **kwargs):

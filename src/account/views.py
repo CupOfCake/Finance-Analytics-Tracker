@@ -96,6 +96,9 @@ def account_view(request):
     all_users_list = list(all_users)   # already a list of dicts
 
 
+    partner = request.user.partner
+    context['partner_id'] = partner.id if partner else None
+    context['partner_username'] = partner.username if partner else None
     context['profile_owner'] = profile_owner
     context['transactions'] = transactions
     context['current_user_id'] = request.user.id
@@ -109,30 +112,29 @@ def account_view(request):
 
 
 def account_update_view(request):
-
     if not request.user.is_authenticated:
         return redirect('login')
-    
-    context: dict[str,object] = {}
+
+    context = {}
 
     if request.POST:
         form = AccountUpdateForm(request.POST, request.FILES, instance=request.user)
         if form.is_valid():
-            form.initial = {
-                'profile_pic': form.cleaned_data['profile_pic'],
-                'email': form.cleaned_data['email'],
-                'username': form.cleaned_data['username'],
-            }
             form.save()
             context['success_message'] = "Updated"
-
-    else: # GET request
+            form = AccountUpdateForm(instance=request.user)
+    else:
         form = AccountUpdateForm(
             initial={
                 'email': request.user.email,
                 'username': request.user.username,
+                'partner': request.user.partner,
             }
         )
 
+    # All users except the current one (for partner dropdown)
+    all_users = User.objects.exclude(id=request.user.id).values('id', 'username')
+    context['all_users'] = list(all_users)
     context['account_form'] = form
+
     return render(request, 'account/account_update.html', context)

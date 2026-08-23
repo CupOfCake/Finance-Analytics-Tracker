@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from django.conf import settings
 
 
 class MyAccountManager(BaseUserManager):
@@ -55,6 +56,15 @@ class Account(AbstractBaseUser):
     is_active       = models.BooleanField(default=True)
     is_staff        = models.BooleanField(default=False)
     is_superuser    = models.BooleanField(default=False)
+
+    partner         = models.ForeignKey(
+                        settings.AUTH_USER_MODEL,
+                        on_delete=models.SET_NULL,
+                        null=True,
+                        blank=True,
+                        related_name='partners',
+                        help_text="Select a partner for 50/50 splits."
+    )
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', ]

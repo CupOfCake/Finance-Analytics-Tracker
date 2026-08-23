@@ -482,7 +482,22 @@
                                                     </select>
                                                 </td>
                                             </tr>
-                                            <!-- Hidden split editor row -->
+
+                                            <!-- Split summary row (if split exists) -->
+                                            {% with summary=transaction.get_split_summary %}
+                                                {% if summary %}
+                                                    <tr class="split-summary-row" id="summary-{{ transaction.id }}" style="background: #f8f9fa;">
+                                                        <td colspan="5" style="padding: 0.1rem 0.5rem; font-size: 0.8rem; color: #4a5568;">
+                                                            <span style="display: flex; align-items: center; gap: 0.5rem;">
+                                                                <span style="font-weight: 500;">Split:</span>
+                                                                <span>{{ summary }}</span>
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                {% endif %}
+                                            {% endwith %}
+
+                                            <!-- Split editor row (hidden by default) -->
                                             <tr id="split-editor-{{ transaction.id }}" style="display: none; background: #f8f9fa;">
                                                 <td colspan="5">
                                                     <div class="split-editor" data-txn-id="{{ transaction.id }}">
@@ -527,6 +542,8 @@
     </div>
 </section>
 
+{{ partner_id|json_script:"partner-id" }}
+{{ partner_username|json_script:"partner-username" }}
 {{ current_user_id|json_script:"current-user-id" }}
 {{ current_user_name|json_script:"current-user-name" }}
 {{ transaction_splits_json|json_script:"transaction-splits-data" }}
@@ -535,12 +552,14 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // --- Parse data from Django ---
-        let transactionSplits, allUsers, currentUserId, currentUserName;
+        let transactionSplits, allUsers, currentUserId, currentUserName, partnerId, partnerUsername;
         try {
             transactionSplits = JSON.parse(document.getElementById('transaction-splits-data').textContent);
             allUsers = JSON.parse(document.getElementById('all-users-data').textContent);
             currentUserId = parseInt(JSON.parse(document.getElementById('current-user-id').textContent));
             currentUserName = JSON.parse(document.getElementById('current-user-name').textContent);
+            partnerId = JSON.parse(document.getElementById('partner-id').textContent);
+            partnerUsername = JSON.parse(document.getElementById('partner-username').textContent);
         } catch (e) {
             console.error('JSON parsing error:', e);
             return;
@@ -549,6 +568,7 @@
         console.log('transactionSplits:', transactionSplits);
         console.log('allUsers:', allUsers);
         console.log('currentUserId:', currentUserId);
+        console.log('partnerId:', partnerId);
 
         if (!Array.isArray(allUsers)) {
             console.error('allUsers is not an array!', allUsers);
@@ -569,6 +589,114 @@
                 }
             }
             return cookieValue;
+        }
+
+        // --- Helper: get transaction total from the DOM ---
+        function getTransactionTotal(txnId) {
+            const totalEl = document.querySelector('#split-editor-' + txnId + ' strong');
+            if (totalEl) {
+                return parseFloat(totalEl.textContent.replace('Total: ', '')) || 0;
+            }
+            const row = document.getElementById('txn-' + txnId);
+            if (row) {
+                const amountCell = row.querySelector('.text-end');
+                if (amountCell) {
+                    return parseFloat(amountCell.textContent.trim()) || 0;
+                }
+            }
+            return 0;
+        }
+
+        // --- Helper: update summary banner after split changes ---
+        function updateSummaryBanner(txnId, splits) {
+            const summaryRow = document.getElementById('summary-' + txnId);
+            if (!splits || splits.length <= 1) {
+                if (summaryRow) summaryRow.remove();
+                return;
+            }
+            const items = [];
+            const ownerSplit = splits.find(s => s.user_id === currentUserId);
+            const otherSplits = splits.filter(s => s.user_id !== currentUserId);
+            if (ownerSplit) {
+                items.push({ name: 'me', amount: ownerSplit.amount });
+            }
+            const others = otherSplits.map(s => {
+                const user = allUsers.find(u => u.id === s.user_id);
+                const name = user ? user.username : 'unknown';
+                return { name: name.slice(0,3), amount: s.amount };
+            });
+            others.sort((a,b) => a.name.localeCompare(b.name));
+            items.push(...others);
+            const summaryText = items.map(item => `${item.name}: ${item.amount}`).join(' | ');
+            if (summaryRow) {
+                summaryRow.querySelector('span:last-child').textContent = summaryText;
+            } else {
+                const mainRow = document.getElementById('txn-' + txnId);
+                const newRow = document.createElement('tr');
+                newRow.id = 'summary-' + txnId;
+                newRow.className = 'split-summary-row';
+                newRow.style.background = '#f8f9fa';
+                newRow.innerHTML = `
+                    <td colspan="5" style="padding: 0.1rem 0.5rem; font-size: 0.8rem; color: #4a5568;">
+                        <span style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="font-weight: 500;">Split:</span>
+                            <span>${summaryText}</span>
+                        </span>
+                    </td>
+                `;
+                mainRow.parentNode.insertBefore(newRow, mainRow.nextSibling);
+            }
+        }
+
+        // --- Generic save function (sends splits and handles response) ---
+        function saveSplits(txnId, splits, closeEditor = true) {
+            const total = getTransactionTotal(txnId);
+            const sum = splits.reduce((acc, s) => acc + s.amount, 0);
+            if (Math.abs(sum - total) > 0.01) {
+                document.getElementById('split-errors-' + txnId).textContent =
+                    `Sum of splits (${sum}) must equal transaction amount (${total}).`;
+                return Promise.reject('Sum mismatch');
+            }
+            const ownerSplit = splits.find(s => s.user_id === currentUserId);
+            const ownerShare = ownerSplit ? ownerSplit.amount : 0;
+            let validOwner = false;
+            if (total < 0) validOwner = ownerShare <= 0 && ownerShare >= total;
+            else if (total > 0) validOwner = ownerShare >= 0 && ownerShare <= total;
+            else validOwner = ownerShare === 0;
+            if (!validOwner) {
+                document.getElementById('split-errors-' + txnId).textContent =
+                    `Owner's share (${ownerShare}) is invalid for this transaction (${total}).`;
+                return Promise.reject('Invalid owner share');
+            }
+
+            return fetch('/finance/api/update-splits/' + txnId + '/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ splits: splits })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    transactionSplits[txnId] = splits;
+                    updateSummaryBanner(txnId, splits);
+                    if (closeEditor) {
+                        const editor = document.getElementById('split-editor-' + txnId);
+                        if (editor) editor.style.display = 'none';
+                    }
+                    document.getElementById('split-errors-' + txnId).textContent = '';
+                    return data;
+                } else {
+                    document.getElementById('split-errors-' + txnId).textContent = data.error || 'Error saving.';
+                    return Promise.reject(data.error);
+                }
+            })
+            .catch(err => {
+                document.getElementById('split-errors-' + txnId).textContent = 'Network error.';
+                return Promise.reject(err);
+            });
         }
 
         // --- Build editor rows ---
@@ -667,9 +795,7 @@
                 sumOthers += amt;
             });
 
-            const totalEl = document.querySelector('#split-editor-' + txnId + ' strong');
-            if (!totalEl) return;
-            const total = parseFloat(totalEl.textContent.replace('Total: ', '')) || 0;
+            const total = getTransactionTotal(txnId);
             const ownerShare = total - sumOthers;
             const ownerInput = container.querySelector('.owner-amount');
             if (ownerInput) ownerInput.value = ownerShare;
@@ -699,21 +825,59 @@
             return;
         }
 
-        // Dropdown change
+        // --- Dropdown change (handles me, 5050, split) ---
         document.querySelectorAll('.split-type').forEach(select => {
             select.addEventListener('change', function() {
                 const txnId = this.dataset.txnId;
                 const editor = document.getElementById('split-editor-' + txnId);
-                if (this.value === 'split') {
+                const value = this.value;
+
+                if (value === 'split') {
                     editor.style.display = 'table-row';
                     buildSplitEditor(txnId);
-                } else {
-                    editor.style.display = 'none';
+                    return;
+                }
+
+                // For "me" and "5050", hide editor and perform AJAX
+                editor.style.display = 'none';
+
+                const total = getTransactionTotal(txnId);
+                let splits = [];
+
+                if (value === 'me') {
+                    splits = [{ user_id: currentUserId, amount: total }];
+                } else if (value === '5050') {
+                    if (!partnerId) {
+                        alert('You have not set a partner. Please set one in your profile.');
+                        this.value = 'me';
+                        return;
+                    }
+                    const ownerAmount = Math.ceil(total / 2);
+                    const partnerAmount = total - ownerAmount;
+                    splits = [
+                        { user_id: currentUserId, amount: ownerAmount },
+                        { user_id: partnerId, amount: partnerAmount }
+                    ];
+                }
+
+                saveSplits(txnId, splits, true)
+                    .catch(() => location.reload());
+            });
+
+            // --- Click handler to reopen editor if already on "split" ---
+            select.addEventListener('click', function() {
+                if (this.value === 'split') {
+                    const txnId = this.dataset.txnId;
+                    const editor = document.getElementById('split-editor-' + txnId);
+                    if (editor && editor.style.display !== 'table-row') {
+                        editor.style.display = 'table-row';
+                        buildSplitEditor(txnId);
+                    }
                 }
             });
         });
 
-        // Add person
+        // --- Add person ---
         tbody.addEventListener('click', function(e) {
             const btn = e.target.closest('.add-split-row');
             if (!btn) return;
@@ -732,7 +896,7 @@
             updateOwnerShare(txnId);
         });
 
-        // Save splits
+        // --- Save splits button ---
         tbody.addEventListener('click', function(e) {
             const btn = e.target.closest('.save-splits');
             if (!btn) return;
@@ -757,63 +921,20 @@
                 if (userId && amount !== 0) splits.push({ user_id: userId, amount: amount });
             });
 
-            const totalEl = document.querySelector('#split-editor-' + txnId + ' strong');
-            if (!totalEl) {
-                document.getElementById('split-errors-' + txnId).textContent = 'Total missing.';
-                return;
-            }
-            const total = parseFloat(totalEl.textContent.replace('Total: ', '')) || 0;
-            const sum = splits.reduce((acc, s) => acc + s.amount, 0);
-            if (Math.abs(sum - total) > 0.01) {
-                document.getElementById('split-errors-' + txnId).textContent =
-                    `Sum of splits (${sum}) must equal transaction amount (${total}).`;
-                return;
-            }
-
-            let validOwner = false;
-            if (total < 0) validOwner = ownerShare <= 0 && ownerShare >= total;
-            else if (total > 0) validOwner = ownerShare >= 0 && ownerShare <= total;
-            else validOwner = ownerShare === 0;
-            if (!validOwner) {
-                document.getElementById('split-errors-' + txnId).textContent =
-                    `Owner's share (${ownerShare}) is invalid for this transaction (${total}).`;
-                return;
-            }
-
-            fetch('/finance/api/update-splits/' + txnId + '/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                },
-                body: JSON.stringify({ splits: splits })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'ok') location.reload();
-                else document.getElementById('split-errors-' + txnId).textContent = data.error || 'Error saving.';
-            })
-            .catch(() => document.getElementById('split-errors-' + txnId).textContent = 'Network error.');
+            saveSplits(txnId, splits, true)
+                .catch(() => {});
         });
 
-        // Cancel button
+        // --- Cancel button ---
         tbody.addEventListener('click', function(e) {
             const btn = e.target.closest('.cancel-splits');
             if (!btn) return;
-            document.getElementById('split-editor-' + btn.dataset.txnId).style.display = 'none';
+            const txnId = btn.dataset.txnId;
+            document.getElementById('split-editor-' + txnId).style.display = 'none';
         });
 
-        // On load: show editors for transactions already 'split'
-        document.querySelectorAll('.split-type').forEach(select => {
-            if (select.value === 'split') {
-                const txnId = select.dataset.txnId;
-                const editor = document.getElementById('split-editor-' + txnId);
-                if (editor) {
-                    editor.style.display = 'table-row';
-                    buildSplitEditor(txnId);
-                }
-            }
-        });
+        // --- On load: do NOT automatically open editors for "split" ---
+        // (Removed the loop that sets display:table-row)
 
     });
 </script>
