@@ -95,6 +95,8 @@ def account_view(request):
     all_users = User.objects.exclude(id=request.user.id).values('id', 'username')
     all_users_list = list(all_users)   # already a list of dicts
 
+    upload_results = request.session.pop('upload_results', None)
+    has_transactions = Transaction.objects.filter(user=profile_owner).exists()
 
     partner = request.user.partner
     context['partner_id'] = partner.id if partner else None
@@ -105,6 +107,8 @@ def account_view(request):
     context['current_user_name'] = request.user.username
     context['transaction_splits_json'] = transaction_splits_data
     context['all_users_json'] = all_users_list
+    context['has_transactions'] = has_transactions
+    context['upload_results'] = upload_results
 
     return render(request, 'account/account.html', context)
 

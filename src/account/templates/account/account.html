@@ -293,6 +293,67 @@
         color: #e74c3c;
     }
 
+    /* ---- vertical upload block (filter sidebar) ---- */
+    .btn-upload-trigger {
+        background: linear-gradient(135deg, #23adad 0%, #00555a 100%);
+        color: #fff;
+        border: none;
+        border-radius: 40px;
+        height: 32px;
+        padding: 0 16px;
+        font-weight: 600;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        transition: 0.25s;
+        width: 100%;
+        display: inline-block;
+        line-height: 32px;
+        text-align: center;
+    }
+    .btn-upload-trigger:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 14px rgba(0, 128, 128, 0.3);
+    }
+
+    .file-name-vertical {
+        font-size: 0.75rem;
+        color: #4a5568;
+        display: block;
+        margin-top: 0.2rem;
+        padding: 0 4px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .file-name-vertical.file-placeholder {
+        color: #a0aec0;
+        font-weight: 300;
+    }
+
+    .btn-upload-submit {
+        background: linear-gradient(135deg, #23adad 0%, #00555a 100%);
+        border: none;
+        border-radius: 40px;
+        height: 30px;
+        padding: 0 14px;
+        font-weight: 600;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #fff;
+        cursor: pointer;
+        transition: 0.25s;
+        width: 100%;
+        display: block;
+    }
+    .btn-upload-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 14px rgba(0, 128, 128, 0.3);
+    }
+
+
     @media (max-width: 767px) {
         .profile-wrapper .row > [class*="col-"] {
             margin-bottom: 20px;
@@ -366,12 +427,40 @@
 
             <div class="col-md-8 col-lg-9">
                 <div class="profile-card profile-content">
-                    <div class="placeholder-icon">📊</div>
-                    <h5>Financial Overview</h5>
-                    <p>This area is currently empty, upload your transaction data to start analysing your spending habits</p>
-                    <div class="form-group" style="margin-top: 1rem;">
-                        <p style="color: #a0aec0; font-style: italic;">(Upload functionality coming soon)</p>
-                    </div>
+                    {% if not has_transactions %}
+                        <!-- No transactions: show upload form -->
+                        <div class="placeholder-icon">📊</div>
+                        <h5>Financial Overview</h5>
+                        <p>Upload your Arion credit card Excel file to import transactions.</p>
+                        <form method="post" enctype="multipart/form-data" action="{% url 'finance:upload_transactions' %}">
+                            {% csrf_token %}
+                            <div class="form-group" style="margin-top: 0.5rem;">
+                                <input type="file" name="file" accept=".xlsx" class="form-control-file" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary" style="border-radius: 40px; background: linear-gradient(135deg, #23adad 0%, #00555a 100%); border: none; padding: 0.5rem 2rem; margin-top: 0.5rem;">
+                                Upload
+                            </button>
+                        </form>
+                    {% else %}
+                        <!-- Data exists: show summary stats -->
+                        <div class="row text-center" style="width:100%;">
+                            <div class="col-md-4">
+                                <h3 style="color:#23adad;">{{ total_income|default:"0" }} kr.</h3>
+                                <p style="color:#a0aec0;">Total Income</p>
+                            </div>
+                            <div class="col-md-4">
+                                <h3 style="color:#e74c3c;">{{ total_expense|default:"0" }} kr.</h3>
+                                <p style="color:#a0aec0;">Total Expenses</p>
+                            </div>
+                            <div class="col-md-4">
+                                <h3 style="color:#1e2a36;">{{ net_balance|default:"0" }} kr.</h3>
+                                <p style="color:#a0aec0;">Net Balance</p>
+                            </div>
+                        </div>
+                        <p style="margin-top:0.5rem; color:#a0aec0; font-size:0.85rem;">
+                            {{ transaction_count }} transactions loaded.
+                        </p>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -384,7 +473,33 @@
                         <!-- Filter sidebar -->
                         <div class="col-md-3 col-lg-2">
                             <div class="filter-section">
-                                <h6 style="font-weight: 600; color: #1e2a36; margin-bottom: 1rem;">Filters</h6>
+
+                                {% if has_transactions %}
+                                    <div class="upload-data-block" style="margin-bottom:0.2rem;">
+                                        <form method="post" enctype="multipart/form-data" action="{% url 'finance:upload_transactions' %}" class="upload-form-vertical">
+                                            {% csrf_token %}
+                                            <div class="upload-trigger">
+                                                <button type="button" class="btn-upload-trigger" onclick="document.getElementById('file-input-vertical').click();">+ Upload more data</button>
+                                            </div>
+                                            <div class="file-info">
+                                                <span class="file-name-vertical file-placeholder" id="file-name-vertical">No file selected</span>
+                                            </div>
+                                            <div class="submit-wrapper" id="submit-wrapper-vertical" style="display:none; margin-top:0.3rem;">
+                                                <button type="submit" class="btn-upload-submit">Upload</button>
+                                            </div>
+                                            <input type="file" name="file" id="file-input-vertical" accept=".xlsx" style="display:none;">
+                                        </form>
+                                    </div>
+                                {% endif %}
+
+                                {% if upload_results %}
+                                    <div style="font-size:0.7rem; color:#4a5568; margin-top:0.2rem;">
+                                        Added {{ upload_results.created }} transaction{{ upload_results.created|pluralize }}, <br>
+                                        skipped {{ upload_results.skipped }} duplicate{{ upload_results.skipped|pluralize }}.
+                                    </div>
+                                {% endif %}
+
+                                <h6 style="font-weight: 600; color: #1e2a36; margin-bottom:0.3rem;">Filters</h6>
 
                                 <div class="filter-group">
                                     <label>Category</label>
@@ -1006,6 +1121,25 @@
         // (Removed the loop that sets display:table-row)
 
     });
+
+        // ---- vertical file upload handler ----
+    const fileInputVert = document.getElementById('file-input-vertical');
+    const fileNameSpan = document.getElementById('file-name-vertical');
+    const submitWrapper = document.getElementById('submit-wrapper-vertical');
+
+    if (fileInputVert) {
+        fileInputVert.addEventListener('change', function() {
+            if (this.files && this.files.length > 0) {
+                fileNameSpan.textContent = this.files[0].name;
+                fileNameSpan.classList.remove('file-placeholder');
+                submitWrapper.style.display = 'block';
+            } else {
+                fileNameSpan.textContent = 'No file selected';
+                fileNameSpan.classList.add('file-placeholder');
+                submitWrapper.style.display = 'none';
+            }
+        });
+    }
 </script>
 
 {% endblock content %}
