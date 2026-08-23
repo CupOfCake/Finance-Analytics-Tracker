@@ -5,60 +5,54 @@
 {% load static %}
 
 <style>
-    .account_container {
-        max-width: 1320px;
+    /* All CSS stays exactly the same as your last version */
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: 'Poppins', sans-serif;
+        background: #f0f2f5;
+        min-height: 100vh;
+    }
+
+    .ftco-section {
+        padding: clamp(2rem, 6vw, 4rem) 0;
+    }
+
+    .profile-wrapper {
+        max-width: 1100px;
         margin: 0 auto;
     }
-    .listing-container {
-        background-color: #fff;
-        margin-bottom: 20px;
-        width: 100%
+
+    .profile-card {
+        background: #fff;
+        border-radius: 20px;
+        padding: 2rem 1.5rem;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+        height: 100%;
     }
 
-    .account_info {
-        background-color: #fff;
-        margin-bottom: 20px;
-    }
-    
-    @media (max-width: 768px) {
-        .right-column{
-            margin-left: 0px;
-        }
+    .profile-info {
+        text-align: center;
     }
 
-    @media (min-width: 768px) {
-        .right-column{
-            margin-left: 20px;
-        }
-        
-    }
-
-
-    .left-column {
-        padding: 0px;
-    }
-
-    .right-column {
-        padding: 0px;
-    }
-
-    @media (max-width: 767px) {
-    .account_info,
-    .listing-container {
-        padding-left: 30px;
-        padding-right: 30px;
-        }
-    }
-
-    /* Profile Picture */
-    .image_circle {
-        width: 100px;
-        height: 100px;
+    .profile-info .image_circle {
+        width: 120px;
+        height: 120px;
         border-radius: 50%;
         overflow: hidden;
-        position: relative; 
+        margin: 0 auto 1rem;
+        border: 3px solid #e0e0e0;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        position: relative;
     }
-    .image_circle img {
+
+    .profile-info .image_circle img {
         width: 100%;
         height: 100%;
         object-fit: cover;
@@ -67,73 +61,221 @@
         left: 50%;
         transform: translate(-50%, -50%);
     }
-    /* End Profile Picture */
 
-    /* Listing Styles */
-    .listing_container {
-        background-color: #f8f9fa; 
-        box-shadow: #d4dbe2 0 0 10px; 
-        padding: 12px;
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        height: 100%;
+    .profile-info .username {
+        font-weight: 700;
+        color: #1e2a36;
+        font-size: 1.6rem;
+        margin-bottom: 0.25rem;
     }
 
-    .listing_container > a {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
+    .profile-info .account-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #a0aec0;
+        margin-bottom: 1.5rem;
+        display: block;
+    }
+
+    .profile-info .edit-btn {
+        display: inline-block;
+        background: linear-gradient(135deg, #23adad 0%, #00555a 100%);
+        color: #fff;
+        border: none;
+        border-radius: 40px;
+        padding: 0.6rem 2rem;
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        transition: 0.25s;
         text-decoration: none;
-        color: inherit;
     }
 
-    .listing_container > a > h4,
-    .listing_container > a > p {
-        margin-top: auto; 
+    .profile-info .edit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px -5px rgba(0, 128, 128, 0.3);
+        color: #fff;
+        text-decoration: none;
     }
 
-    .img-container {
-        width: 100%;
+    .profile-content {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: #a0aec0;
         text-align: center;
     }
 
-    .img-container img {
-        display: block;
+    .profile-content .placeholder-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.4;
+    }
+
+    .profile-content h5 {
+        font-weight: 600;
+        color: #4a5568;
+        margin-bottom: 0.5rem;
+    }
+
+    .profile-content p {
+        font-weight: 300;
+        color: #a0aec0;
+        max-width: 300px;
         margin: 0 auto;
-        max-width: 100%;
-        max-height: 300px;
-        height: auto;
-        object-fit: contain;
     }
 
-    .text-wrapper {
-        margin-top: auto;   /* pushes this block to the bottom of the card */
+    /* ---- Filter & table styles ---- */
+    .filter-section {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
     }
 
-    .row.mt-3 > [class*="col-"] {
-        margin-bottom: 12px;
+    .filter-group {
+        margin-bottom: 1rem;
     }
-    /* End Listing Styles */
-    
+
+    .filter-group label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #4a5568;
+        display: block;
+        margin-bottom: 0.25rem;
+    }
+
+    .filter-group .form-control-sm {
+        background: #f0f2f5;
+        border: none;
+        border-radius: 50px;
+        height: 36px;
+        padding: 0 15px;
+        font-size: 0.85rem;
+        width: 100%;
+    }
+
+    .filter-group .form-check {
+        margin-bottom: 0.3rem;
+    }
+
+    .filter-group .form-check-input {
+        accent-color: #23adad;
+    }
+
+    .filter-group .form-check-label {
+        font-size: 0.9rem;
+        color: #4a5568;
+    }
+
+    .table-transactions {
+        font-size: 0.9rem;
+        margin-bottom: 0;
+    }
+
+    .table-transactions thead th {
+        border-bottom: 2px solid #e2e8f0;
+        color: #4a5568;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        letter-spacing: 0.5px;
+        padding: 0.75rem 0.5rem;
+    }
+
+    .table-transactions tbody td {
+        padding: 0.75rem 0.5rem;
+        border-bottom: 1px solid #edf2f7;
+        color: #1e2a36;
+    }
+
+    .table-transactions tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .badge-category {
+        background: #e2e8f0;
+        color: #4a5568;
+        border-radius: 50px;
+        padding: 0.2rem 0.8rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .badge-category.income {
+        background: #c6f6d5;
+        color: #276749;
+    }
+
+    .badge-category.expense {
+        background: #fed7d7;
+        color: #9b2c2c;
+    }
+
+    .messages {
+        list-style: none;
+        padding: 0;
+        margin-bottom: 1.5rem;
+    }
+    .messages li {
+        text-align: center;
+        padding: 0.5rem 1rem;
+        border-radius: 30px;
+        background: #eafaf1;
+        color: #27ae60;
+    }
+    .messages li.error {
+        background: #fdedec;
+        color: #e74c3c;
+    }
+
+    @media (max-width: 767px) {
+        .profile-wrapper .row > [class*="col-"] {
+            margin-bottom: 20px;
+        }
+        .profile-card {
+            padding: 1.5rem;
+        }
+        .profile-info .image_circle {
+            width: 100px;
+            height: 100px;
+        }
+        .profile-info .username {
+            font-size: 1.4rem;
+        }
+        .filter-section {
+            margin-bottom: 1.5rem;
+        }
+        .table-transactions {
+            font-size: 0.8rem;
+        }
+    }
+
+    .bottom-row {
+        margin-top: 20px;
+    }
 </style>
 
+<section class="ftco-section">
+    <div class="container profile-wrapper">
+        <!-- Messages -->
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
 
-<div class="account_container">
-    {% if messages %}
-        <ul class="messages">
-            {% for message in messages %}
-            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
-    <div class="row">
-
-        <!-- Account info -->
-        <div class="left-column col-md-3 offset-md-1 col-lg-3 offset-lg-1">
-            <div class="account_info p-4">
-                <div class="flex-column align-items-center d-flex mb-4">
-
+        <!-- TOP ROW: Profile + Financial Overview -->
+        <div class="row">
+            <div class="col-md-4 col-lg-3">
+                <div class="profile-card profile-info">
                     <div class="image_circle">
                         {% if profile_owner.profile_pic %}
                             <img src="{{ profile_owner.profile_pic.url }}" alt="{{ profile_owner.username }}">
@@ -141,40 +283,119 @@
                             <img src="{% static 'DefaultPFP.png' %}" alt="{{ profile_owner.username }}">
                         {% endif %}
                     </div>
-                    
-                    <h3 class="mb-0">{{ profile_owner.username }}</h3>
+                    <h3 class="username">{{ profile_owner.username }}</h3>
+                    <span class="account-label">Account</span>
+
+                    {% if request.user == profile_owner %}
+                        <a href="{% url 'account_update' %}" class="edit-btn">Edit account info</a>
+                    {% else %}
+                        <p style="font-size: 0.9rem; color: #a0aec0; margin-top: 1rem;">Viewing public profile</p>
+                    {% endif %}
                 </div>
-                    <p>account info</p>
-                    <div>
-                        {% if request.user == profile_owner %}
-                            <a href="{% url 'account_update' %}" class="update-account btn btn-outline-primary mb-2">Edit account info</a>
-                            <br>
-                        {% else %}
-                            <p>lalala</p>
-                        {% endif %}
+            </div>
+
+            <div class="col-md-8 col-lg-9">
+                <div class="profile-card profile-content">
+                    <div class="placeholder-icon">📊</div>
+                    <h5>Financial Overview</h5>
+                    <p>This area is currently empty, upload your transaction data to start analysing your spending habits</p>
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <p style="color: #a0aec0; font-style: italic;">(Upload functionality coming soon)</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- User listings -->
-        <div class="right-column col-md-7 col-lg-7 d-md-flex flex-column">
-            <div class="listing-container p-4">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <p>missing</p>
+        <!-- BOTTOM ROW: Filters + Transaction list -->
+        <div class="row bottom-row">
+            <div class="col-12">
+                <div class="profile-card" style="height: auto;">
+                    <div class="row">
+                        <!-- Filter sidebar (placeholder) -->
+                        <div class="col-md-3 col-lg-2">
+                            <div class="filter-section">
+                                <h6 style="font-weight: 600; color: #1e2a36; margin-bottom: 1rem;">Filters</h6>
+
+                                <div class="filter-group">
+                                    <label>Date range</label>
+                                    <input type="text" class="form-control-sm" placeholder="Start – End" style="width: 100%;">
+                                </div>
+
+                                <div class="filter-group">
+                                    <label>Category</label>
+                                    <select class="form-control-sm" style="width: 100%;">
+                                        <option>All categories</option>
+                                        <option>Food</option>
+                                        <option>Transport</option>
+                                        <option>Entertainment</option>
+                                        <option>Bills</option>
+                                    </select>
+                                </div>
+
+                                <div class="filter-group">
+                                    <label>Type</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="check-income" checked>
+                                        <label class="form-check-label" for="check-income">Income</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="check-expense" checked>
+                                        <label class="form-check-label" for="check-expense">Expense</label>
+                                    </div>
+                                </div>
+
+                                <div class="filter-group">
+                                    <label>Amount</label>
+                                    <input type="text" class="form-control-sm" placeholder="Min – Max" style="width: 100%;">
+                                </div>
+
+                                <button class="btn btn-primary" style="width: 100%; border-radius: 40px; background: linear-gradient(135deg, #23adad 0%, #00555a 100%); border: none; height: 40px; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Apply filters</button>
+                            </div>
+                        </div>
+
+                        <!-- Transaction list (right) -->
+                        <div class="col-md-9 col-lg-10">
+                            <div style="overflow-x: auto;">
+                                <table class="table table-transactions">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Description</th>
+                                            <th>Category</th>
+                                            <th class="text-end">Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for transaction in transactions %}
+                                            <tr>
+                                                <td>{{ transaction.transaction_date|date:"Y-m-d" }}</td>
+                                                <td>{{ transaction.transaction_name }}</td>
+                                                <td>
+                                                    <span class="badge-category {% if transaction.transaction_type|lower == 'income' %}income{% elif transaction.transaction_type|lower == 'expense' %}expense{% else %}{% endif %}">
+                                                        {{ transaction.transaction_type }}
+                                                    </span>
+                                                <td class="text-end">{{ transaction.transaction_ammount }}</td>
+                                            </tr>
+                                        {% empty %}
+                                            <tr>
+                                                <td colspan="4" style="text-align: center; color: #a0aec0; padding: 2rem 0;">
+                                                    No transactions found.
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <p style="margin-top: 1rem; color: #a0aec0; font-size: 0.85rem; text-align: center; font-style: italic;">
+                                Transaction data from your account — replace the filter placeholders with real logic.
+                            </p>
+                        </div>
+                    </div>
                 </div>
-
-                <!-- Display user's listings -->
-                <div class="row mt-3">
-                    <p>missing</p>
-                </div>
-
-
             </div>
         </div>
 
-
     </div>
-</div>
+</section>
 
 {% endblock content %}

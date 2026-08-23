@@ -1,6 +1,8 @@
 from django.shortcuts import render, redirect
+from operator import attrgetter
 from django.contrib.auth import login, authenticate, logout
 from account.forms import AccountAuthenticationForm, RegistrationForm, AccountUpdateForm
+from finance.models import Transaction
 
 
 def registration_view(request):
@@ -68,18 +70,10 @@ def account_view(request):
 
     profile_owner = request.user
 
-    if request.POST:
-        form = AccountUpdateForm(request.POST, instance=request.user)
-        if form.is_valid():
-            form.save()
-    else: # GET request
-        form = AccountUpdateForm(
-            initial={
-                'email': request.user.email,
-                'username': request.user.username,
-            }
-        )
+    transactions = sorted(Transaction.objects.filter(user=request.user),key=attrgetter('transaction_date'), reverse=False)
+
     context['profile_owner'] = profile_owner
+    context['transactions'] = transactions
     return render(request, 'account/account.html', context)
 
 
