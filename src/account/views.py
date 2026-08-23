@@ -7,6 +7,7 @@ from finance.models import Transaction, TransactionSplit
 from django.db.models import Sum, Prefetch
 from django.shortcuts import render
 import json
+from django.db.models import Q
 
 User = get_user_model()
 
@@ -69,6 +70,8 @@ def login_view(request):
 
 
 
+
+
 def account_view(request):
     if not request.user.is_authenticated:
         return redirect('login')
@@ -82,10 +85,17 @@ def account_view(request):
     # ---- Filters ----
     year = request.GET.get('year')
     month = request.GET.get('month')
+    q = request.GET.get('q', '').strip()
+
     if year and year.isdigit():
         transactions_qs = transactions_qs.filter(transaction_date__year=year)
     if month and month.isdigit():
         transactions_qs = transactions_qs.filter(transaction_date__month=month)
+    if q:
+        transactions_qs = transactions_qs.filter(
+            Q(transaction_name__icontains=q) |
+            Q(transaction_type__icontains=q)
+        )
 
     # Prefetch splits
     transactions_qs = transactions_qs.prefetch_related(
@@ -122,7 +132,7 @@ def account_view(request):
     net_balance = total_income + total_expense
     transaction_count = transactions_qs.count()
 
-    # ---- Year choices for filter dropdown ----
+    # ---- Year choices ----
     available_years = Transaction.objects.filter(user=request.user).dates('transaction_date', 'year', order='DESC')
     year_choices = [('', 'All years')] + [(str(year.year), str(year.year)) for year in available_years]
 
@@ -134,11 +144,9 @@ def account_view(request):
         ('9', 'September'), ('10', 'October'), ('11', 'November'), ('12', 'December')
     ]
 
-    # ---- Build base URL for pagination (preserve filters, remove only 'page') ----
+    # ---- Build base URL for pagination (preserve filters, remove page) ----
     get_params = request.GET.copy()
-    get_params.pop('page', None)        # remove page param
-    # remove pagination if it somehow exists, but we won't use it
-    get_params.pop('pagination', None)
+    get_params.pop('page', None)
     base_url = get_params.urlencode()
     if base_url:
         base_url = '?' + base_url + '&'
@@ -166,6 +174,7 @@ def account_view(request):
         'selected_month': month,
         'year_choices': year_choices,
         'month_choices': month_choices,
+        'search_query': q,
         'base_url': base_url,
     })
 
