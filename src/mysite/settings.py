@@ -29,6 +29,11 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 
+if DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' # for testing email functionality, prints emails to console instead of sending them
+#else:
+    #prod variables go here
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -36,6 +41,8 @@ INSTALLED_APPS = [
     # Custom apps
     'core',
     'account',
+    'dashboard',
+    'finance',
 
     # Default Django apps
     'django.contrib.admin',
@@ -129,3 +136,13 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+    os.path.join(BASE_DIR, 'media'),
+]
+STATIC_URL = '/static/'
+MEDIA_URL = '/media/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static_cdn')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media_cdn')

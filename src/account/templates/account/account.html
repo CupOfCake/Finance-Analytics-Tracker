@@ -2,36 +2,1211 @@
 
 {% block content %}
 
-<h2>Login</h2>
-<form method="POST">
-    {% csrf_token %}
+{% load static currency_filters %}
 
-    {% for field in account_form %}
-        <p>
-            {{field.label_tag}}<br>
-            {{field}}
+{% load static %}
 
-             {% if field.help_text %}
-                <small style="color: grey;">{{ field.help_text }}</small>
-             {% endif %}
-        </p>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
-    {% endfor %}
-        {% for field in account_form %}
-            {% for error in field.errors %}
-                <p style="color: red;">{{ error }}</p>
-            {% endfor %}
-        {% endfor %}
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
 
-        {% if account_form.non_field_errors %}
-            <div style="color: red;">
-                <p>{{ account_form.non_field_errors }}</p>
+    body {
+        font-family: 'Poppins', sans-serif;
+        background: #f0f2f5;
+        min-height: 100vh;
+    }
+
+    .ftco-section {
+        padding: clamp(2rem, 6vw, 4rem) 0;
+    }
+
+    .profile-wrapper {
+        max-width: 1100px;
+        margin: 0 auto;
+    }
+
+    .profile-card {
+        background: #fff;
+        border-radius: 20px;
+        padding: 2rem 1.5rem;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+        height: 100%;
+    }
+
+    .profile-info {
+        text-align: center;
+    }
+
+    .profile-info .image_circle {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        overflow: hidden;
+        margin: 0 auto 1rem;
+        border: 3px solid #e0e0e0;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        position: relative;
+    }
+
+    .profile-info .image_circle img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    .profile-info .username {
+        font-weight: 700;
+        color: #1e2a36;
+        font-size: 1.6rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .profile-info .account-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #a0aec0;
+        margin-bottom: 1.5rem;
+        display: block;
+    }
+
+    .profile-info .edit-btn {
+        display: inline-block;
+        background: linear-gradient(135deg, #23adad 0%, #00555a 100%);
+        color: #fff;
+        border: none;
+        border-radius: 40px;
+        padding: 0.5rem 1.5rem;          /* slightly smaller */
+        font-weight: 600;
+        font-size: 0.8rem;               /* slightly smaller */
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        transition: 0.25s;
+        text-decoration: none;
+        white-space: nowrap;              /* prevents wrapping */
+    }
+
+    .profile-info .edit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px -5px rgba(0, 128, 128, 0.3);
+        color: #fff;
+        text-decoration: none;
+    }
+
+    .profile-content {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: #a0aec0;
+        text-align: center;
+        padding: 1.5rem;
+    }
+
+    .profile-content .placeholder-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.4;
+    }
+
+    .profile-content h5 {
+        font-weight: 600;
+        color: #4a5568;
+        margin-bottom: 0.5rem;
+    }
+
+    .profile-content p {
+        font-weight: 300;
+        color: #a0aec0;
+        max-width: 300px;
+        margin: 0 auto;
+    }
+
+    /* ---- Filter & table styles ---- */
+    .filter-section {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .filter-group {
+        margin-bottom: 1rem;
+    }
+
+    .filter-group label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #4a5568;
+        display: block;
+        margin-bottom: 0.25rem;
+    }
+
+    .filter-group .form-control-sm {
+        background: #f0f2f5;
+        border: none;
+        border-radius: 50px;
+        height: 36px;
+        padding: 0 15px;
+        font-size: 0.85rem;
+        width: 100%;
+    }
+
+    .filter-group .form-check {
+        margin-bottom: 0.3rem;
+    }
+
+    .filter-group .form-check-input {
+        accent-color: #23adad;
+    }
+
+    .filter-group .form-check-label {
+        font-size: 0.9rem;
+        color: #4a5568;
+    }
+
+    /* ---- Transaction toolbar (search + date filters) ---- */
+    .transaction-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .transaction-toolbar .search-box {
+        flex: 1;
+        min-width: 180px;
+    }
+
+    .transaction-toolbar .search-box input {
+        background: #f0f2f5;
+        border: none;
+        border-radius: 50px;
+        height: 36px;
+        padding: 0 18px;
+        font-size: 0.85rem;
+        width: 100%;
+        font-family: 'Poppins', sans-serif;
+        transition: background 0.2s;
+    }
+
+    .transaction-toolbar .search-box input:focus {
+        outline: none;
+        background: #e8eaed;
+        box-shadow: 0 0 0 2px rgba(0, 128, 128, 0.1);
+    }
+
+    .transaction-toolbar .date-filters {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .transaction-toolbar .date-filters select {
+        background: #f0f2f5;
+        border: none;
+        border-radius: 50px;
+        height: 36px;
+        padding: 0 15px;
+        font-size: 0.85rem;
+        min-width: 100px;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .transaction-toolbar .date-filters select:focus {
+        outline: none;
+        background: #e8eaed;
+        box-shadow: 0 0 0 2px rgba(0, 128, 128, 0.1);
+    }
+
+    .table-transactions {
+        font-size: 0.9rem;
+        margin-bottom: 0;
+    }
+
+    .table-transactions thead th {
+        border-bottom: 2px solid #e2e8f0;
+        color: #4a5568;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        letter-spacing: 0.5px;
+        padding: 0.75rem 0.5rem;
+    }
+
+    .table-transactions tbody td {
+        padding: 0.75rem 0.5rem;
+        border-bottom: 1px solid #edf2f7;
+        color: #1e2a36;
+    }
+
+    .table-transactions tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .badge-category {
+        background: #e2e8f0;
+        color: #4a5568;
+        border-radius: 50px;
+        padding: 0.2rem 0.8rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .badge-category.income {
+        background: #c6f6d5;
+        color: #276749;
+    }
+
+    .badge-category.expense {
+        background: #fed7d7;
+        color: #9b2c2c;
+    }
+
+    .messages {
+        list-style: none;
+        padding: 0;
+        margin-bottom: 1.5rem;
+    }
+    .messages li {
+        text-align: center;
+        padding: 0.5rem 1rem;
+        border-radius: 30px;
+        background: #eafaf1;
+        color: #27ae60;
+    }
+    .messages li.error {
+        background: #fdedec;
+        color: #e74c3c;
+    }
+
+    /* ---- vertical upload block (filter sidebar) ---- */
+    .btn-upload-trigger {
+        background: linear-gradient(135deg, #23adad 0%, #00555a 100%);
+        color: #fff;
+        border: none;
+        border-radius: 40px;
+        height: 32px;
+        padding: 0 16px;
+        font-weight: 600;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        transition: 0.25s;
+        width: 100%;
+        display: inline-block;
+        line-height: 32px;
+        text-align: center;
+    }
+    .btn-upload-trigger:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 14px rgba(0, 128, 128, 0.3);
+    }
+
+    .file-name-vertical {
+        font-size: 0.75rem;
+        color: #4a5568;
+        display: block;
+        margin-top: 0.2rem;
+        padding: 0 4px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .file-name-vertical.file-placeholder {
+        color: #a0aec0;
+        font-weight: 300;
+    }
+
+    .btn-upload-submit {
+        background: linear-gradient(135deg, #23adad 0%, #00555a 100%);
+        border: none;
+        border-radius: 40px;
+        height: 30px;
+        padding: 0 14px;
+        font-weight: 600;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #fff;
+        cursor: pointer;
+        transition: 0.25s;
+        width: 100%;
+        display: block;
+    }
+    .btn-upload-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 14px rgba(0, 128, 128, 0.3);
+    }
+
+    /* ---- Custom pagination (compact, left-aligned, gray/teal) ---- */
+    .custom-pagination-nav {
+        margin-top: 1rem;
+    }
+    .custom-pagination {
+        display: flex;
+        flex-wrap: wrap;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        gap: 4px;
+        justify-content: flex-end;  /* right-align */
+    }
+    .custom-pagination li {
+        display: inline-block;
+    }
+    .custom-pagination li a,
+    .custom-pagination li span {
+        display: inline-block;
+        padding: 4px 12px;
+        background: #f0f2f5;
+        color: #4a5568;
+        border-radius: 30px;
+        text-decoration: none;
+        font-size: 0.8rem;
+        line-height: 1.5;
+        transition: background 0.2s;
+        border: none;
+    }
+    .custom-pagination li a:hover {
+        background: #e2e8f0;
+        color: #1e2a36;
+    }
+    .custom-pagination li.active span {
+        background: linear-gradient(135deg, #23adad 0%, #00555a 100%);
+        color: #fff;
+    }
+    .custom-pagination li.disabled span {
+        opacity: 0.5;
+        cursor: default;
+    }
+    .custom-pagination li a:focus {
+        outline: none;
+    }
+
+
+    @media (max-width: 767px) {
+        .profile-wrapper .row > [class*="col-"] {
+            margin-bottom: 20px;
+        }
+        .profile-card {
+            padding: 1.5rem;
+        }
+        .profile-info .image_circle {
+            width: 100px;
+            height: 100px;
+        }
+        .profile-info .username {
+            font-size: 1.4rem;
+        }
+        .filter-section {
+            margin-bottom: 1.5rem;
+        }
+        .table-transactions {
+            font-size: 0.8rem;
+        }
+        .transaction-toolbar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .transaction-toolbar .date-filters {
+            flex-wrap: wrap;
+        }
+        .transaction-toolbar .date-filters select {
+            flex: 1;
+            min-width: 80px;
+        }
+    }
+
+    .bottom-row {
+        margin-top: 20px;
+    }
+</style>
+
+<section class="ftco-section">
+    <div class="container profile-wrapper">
+        <!-- Messages -->
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        <!-- TOP ROW: Profile + Financial Overview -->
+        <div class="row">
+            <div class="col-md-4 col-lg-3">
+                <div class="profile-card profile-info">
+                    <div class="image_circle">
+                        {% if profile_owner.profile_pic %}
+                            <img src="{{ profile_owner.profile_pic.url }}" alt="{{ profile_owner.username }}">
+                        {% else %}
+                            <img src="{% static 'DefaultPFP.png' %}" alt="{{ profile_owner.username }}">
+                        {% endif %}
+                    </div>
+                    <h3 class="username">{{ profile_owner.username }}</h3>
+                    <span class="account-label">Account</span>
+
+                    {% if request.user == profile_owner %}
+                        <a href="{% url 'account_update' %}" class="edit-btn">Edit account info</a>
+                    {% else %}
+                        <p style="font-size: 0.9rem; color: #a0aec0; margin-top: 1rem;">Viewing public profile</p>
+                    {% endif %}
+                </div>
             </div>
-    {% endif %}
 
-    {{ form.as_p }}
+            <div class="col-md-8 col-lg-9">
+                <div class="profile-card profile-content">
+                    {% if not has_transactions %}
+                        <!-- No transactions: show upload form -->
+                        <div class="placeholder-icon">📊</div>
+                        <h5>Financial Overview</h5>
+                        <p>Upload your Arion credit card Excel file to import transactions.</p>
+                        <form method="post" enctype="multipart/form-data" action="{% url 'finance:upload_transactions' %}">
+                            {% csrf_token %}
+                            <div class="form-group" style="margin-top: 0.5rem;">
+                                <input type="file" name="file" accept=".xlsx" class="form-control-file" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary" style="border-radius: 40px; background: linear-gradient(135deg, #23adad 0%, #00555a 100%); border: none; padding: 0.5rem 2rem; margin-top: 0.5rem;">
+                                Upload
+                            </button>
+                        </form>
+                    {% else %}
+                        <!-- Data exists: stats (left) + graph placeholder (right) -->
+                        <div style="display: flex; width: 100%; gap: 1.5rem; align-items: stretch; height: 100%;">
+                            <!-- Stats – left column -->
+                            <div style="flex: 0 0 auto; min-width: 140px; text-align: left; font-size: 0.9rem; line-height: 1.5; display: flex; flex-direction: column; justify-content: center; padding: 0.2rem 0;">
+                                <div>
+                                    <span style="color:#23adad; font-weight:600;">Total Income</span><br>
+                                    <span style="font-weight:500; font-size:1.2rem;">{{ total_income|default:"0"|isk_format }}</span>
+                                </div>
+                                <div>
+                                    <span style="color:#e74c3c; font-weight:600;">Total Expenses</span><br>
+                                    <span style="font-weight:500; font-size:1.2rem;">-{{ total_expense|default:"0"|isk_format }}</span>
+                                </div>
+                                <div>
+                                    <span style="color:#1e2a36; font-weight:600;">Net Balance</span><br>
+                                    <span style="font-weight:500; font-size:1.2rem;">{{ net_balance|default:"0"|isk_format }}</span>
+                                </div>
+                                <div style="margin-top: 0.5rem; color:#a0aec0; font-size:0.8rem; line-height:1.3;">
+                                    <div>{{ transaction_count }} transactions</div>
+                                    <div>loaded</div>
+                                </div>
+                            </div>
 
+                            <!-- Graph placeholder – takes remaining width and full height -->
+                            <div style="flex: 1; background:#f0f2f5; border-radius:12px; display:flex; align-items:center; justify-content:center; color:#a0aec0; font-size:1rem; font-weight:300;">
+                                📈 Chart placeholder
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
 
-    <button type="submit">Save changes</button>
+        <!-- BOTTOM ROW: Filters + Transaction list -->
+        <div class="row bottom-row">
+            <div class="col-12">
+                <div class="profile-card" style="height: auto;">
+                    <div class="row">
+                        <!-- Filter sidebar -->
+                        <div class="col-md-3 col-lg-2">
+                            <div class="filter-section">
+
+                                {% if has_transactions %}
+                                    <div class="upload-data-block" style="margin-bottom:0.2rem;">
+                                        <form method="post" enctype="multipart/form-data" action="{% url 'finance:upload_transactions' %}" class="upload-form-vertical">
+                                            {% csrf_token %}
+                                            <div class="upload-trigger">
+                                                <button type="button" class="btn-upload-trigger" onclick="document.getElementById('file-input-vertical').click();">+ Upload more data</button>
+                                            </div>
+                                            <div class="file-info">
+                                                <span class="file-name-vertical file-placeholder" id="file-name-vertical">No file selected</span>
+                                            </div>
+                                            <div class="submit-wrapper" id="submit-wrapper-vertical" style="display:none; margin-top:0.3rem;">
+                                                <button type="submit" class="btn-upload-submit">Upload</button>
+                                            </div>
+                                            <input type="file" name="file" id="file-input-vertical" accept=".xlsx" style="display:none;">
+                                        </form>
+                                    </div>
+                                {% endif %}
+
+                                {% if upload_results %}
+                                    <div style="font-size:0.7rem; color:#4a5568; margin-top:0.2rem;">
+                                        Added {{ upload_results.created }} transaction{{ upload_results.created|pluralize }}, <br>
+                                        skipped {{ upload_results.skipped }} duplicate{{ upload_results.skipped|pluralize }}.
+                                    </div>
+                                {% endif %}
+
+                                <h6 style="font-weight: 600; color: #1e2a36; margin-bottom:0.3rem;">Filters</h6>
+
+                                <div class="filter-group">
+                                    <label>Category</label>
+                                    <select class="form-control-sm" style="width: 100%;">
+                                        <option>All categories</option>
+                                        <option>Food</option>
+                                        <option>Transport</option>
+                                        <option>Entertainment</option>
+                                        <option>Bills</option>
+                                    </select>
+                                </div>
+
+                                <div class="filter-group">
+                                    <label>Type</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="check-income" checked>
+                                        <label class="form-check-label" for="check-income">Income</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="check-expense" checked>
+                                        <label class="form-check-label" for="check-expense">Expense</label>
+                                    </div>
+                                </div>
+
+                                <div class="filter-group">
+                                    <label>Amount</label>
+                                    <input type="text" class="form-control-sm" placeholder="Min – Max" style="width: 100%;">
+                                </div>
+
+                                <button class="btn btn-primary" style="width: 100%; border-radius: 40px; background: linear-gradient(135deg, #23adad 0%, #00555a 100%); border: none; height: 40px; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Apply filters</button>
+                            </div>
+                        </div>
+
+                        <!-- Transaction list -->
+                        <div class="col-md-9 col-lg-10">
+                            <!-- Toolbar: Search + Year/Month -->
+                            <form method="get" action="?" id="filter-form">
+                                <div class="transaction-toolbar">
+                                    <div class="search-box">
+                                        <input type="text" name="q" placeholder="Search transactions..." value="{{ search_query }}">
+                                    </div>
+                                    <div class="date-filters">
+                                        <select name="year" id="year-filter" onchange="this.form.submit()">
+                                            {% for value, label in year_choices %}
+                                                <option value="{{ value }}" {% if value == selected_year %}selected{% endif %}>{{ label }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <select name="month" id="month-filter" onchange="this.form.submit()">
+                                            {% for value, label in month_choices %}
+                                                <option value="{{ value }}" {% if value == selected_month %}selected{% endif %}>{{ label }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </form>
+
+                            <!-- Table -->
+                            <div style="overflow-x: auto;">
+                                <table class="table table-transactions">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Description</th>
+                                            <th>Category</th>
+                                            <th class="text-end">Amount</th>
+                                            <th class="text-center">Split</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for transaction in transactions %}
+                                            <!-- Main row -->
+                                            <tr id="txn-{{ transaction.id }}">
+                                                <td>{{ transaction.transaction_date|date:"Y-m-d" }}</td>
+                                                <td>{{ transaction.transaction_name }}</td>
+                                                <td>
+                                                    <span class="badge-category {% if transaction.transaction_type|lower == 'income' %}income{% elif transaction.transaction_type|lower == 'expense' %}expense{% endif %}">
+                                                        {{ transaction.transaction_type }}
+                                                    </span>
+                                                </td>
+                                                <td class="text-end">{{ transaction.transaction_ammount|isk_format }}</td>
+                                                <td class="text-center">
+                                                    <select class="form-select form-select-sm split-type" data-txn-id="{{ transaction.id }}" style="width:auto; display:inline-block;">
+                                                        <option value="me" {% if transaction.get_split_type == 'me' %}selected{% endif %}>Me</option>
+                                                        <option value="5050" {% if transaction.get_split_type == '5050' %}selected{% endif %}>50/50</option>
+                                                        <option value="split" {% if transaction.get_split_type == 'split' %}selected{% endif %}>Split</option>
+                                                    </select>
+                                                </td>
+                                            </tr>
+
+                                            <!-- Split summary row (if split exists) -->
+                                            {% with summary=transaction.get_split_summary %}
+                                                {% if summary %}
+                                                    <tr class="split-summary-row" id="summary-{{ transaction.id }}" style="background: #f8f9fa;">
+                                                        <td colspan="5" style="padding: 0.1rem 0.5rem; font-size: 0.8rem; color: #4a5568;">
+                                                            <span style="display: flex; align-items: center; gap: 0.5rem;">
+                                                                <span style="font-weight: 500;">Split:</span>
+                                                                <span>{{ summary }}</span>
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                {% endif %}
+                                            {% endwith %}
+
+                                            <!-- Split editor row (hidden by default) -->
+                                            <tr id="split-editor-{{ transaction.id }}" style="display: none; background: #f8f9fa;">
+                                                <td colspan="5">
+                                                    <div class="split-editor" data-txn-id="{{ transaction.id }}">
+                                                        <div class="row mb-2">
+                                                            <div class="col-md-6">
+                                                                <strong>Total: {{ transaction.transaction_ammount|isk_format }}</strong>
+                                                            </div>
+                                                            <div class="col-md-6 text-end">
+                                                                <span id="sum-display-{{ transaction.id }}" style="font-weight:bold;">Sum: 0</span>
+                                                                <span id="valid-badge-{{ transaction.id }}" class="badge bg-warning">Not saved</span>
+                                                            </div>
+                                                        </div>
+                                                        <div id="split-rows-{{ transaction.id }}">
+                                                            <!-- Will be populated by JavaScript -->
+                                                        </div>
+                                                        <div class="row mt-2">
+                                                            <div class="col">
+                                                                <button class="btn btn-sm btn-outline-secondary add-split-row" data-txn-id="{{ transaction.id }}">+ Add person</button>
+                                                                <button class="btn btn-sm btn-primary save-splits" data-txn-id="{{ transaction.id }}" style="margin-left:10px;">Save splits</button>
+                                                                <button class="btn btn-sm btn-secondary cancel-splits" data-txn-id="{{ transaction.id }}">Cancel</button>
+                                                            </div>
+                                                        </div>
+                                                        <div id="split-errors-{{ transaction.id }}" class="text-danger mt-2"></div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% empty %}
+                                            <tr><td colspan="5" style="text-align:center; color: #a0aec0; padding:2rem 0;">No transactions found.</td></tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                                <!-- Pagination -->
+                                {% if page_obj.has_other_pages %}
+                                    <nav aria-label="Transaction pagination" class="custom-pagination-nav" id="pagination-bottom">
+                                        <ul class="custom-pagination">
+                                            {% if page_obj.has_previous %}
+                                                <li><a href="{{ base_url }}page={{ page_obj.previous_page_number }}#pagination-bottom">‹</a></li>
+                                            {% else %}
+                                                <li class="disabled"><span>‹</span></li>
+                                            {% endif %}
+
+                                            {% for num in page_obj.paginator.page_range %}
+                                                {% if page_obj.number == num %}
+                                                    <li class="active"><span>{{ num }}</span></li>
+                                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                                    <li><a href="{{ base_url }}page={{ num }}#pagination-bottom">{{ num }}</a></li>
+                                                {% endif %}
+                                            {% endfor %}
+
+                                            {% if page_obj.has_next %}
+                                                <li><a href="{{ base_url }}page={{ page_obj.next_page_number }}#pagination-bottom">›</a></li>
+                                            {% else %}
+                                                <li class="disabled"><span>›</span></li>
+                                            {% endif %}
+                                        </ul>
+                                    </nav>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+{{ partner_id|json_script:"partner-id" }}
+{{ partner_username|json_script:"partner-username" }}
+{{ current_user_id|json_script:"current-user-id" }}
+{{ current_user_name|json_script:"current-user-name" }}
+{{ transaction_splits_json|json_script:"transaction-splits-data" }}
+{{ all_users_json|json_script:"all-users-data" }}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- Parse data from Django ---
+        let transactionSplits, allUsers, currentUserId, currentUserName, partnerId, partnerUsername;
+        try {
+            transactionSplits = JSON.parse(document.getElementById('transaction-splits-data').textContent);
+            allUsers = JSON.parse(document.getElementById('all-users-data').textContent);
+            currentUserId = parseInt(JSON.parse(document.getElementById('current-user-id').textContent));
+            currentUserName = JSON.parse(document.getElementById('current-user-name').textContent);
+            partnerId = JSON.parse(document.getElementById('partner-id').textContent);
+            partnerUsername = JSON.parse(document.getElementById('partner-username').textContent);
+        } catch (e) {
+            console.error('JSON parsing error:', e);
+            return;
+        }
+
+        console.log('transactionSplits:', transactionSplits);
+        console.log('allUsers:', allUsers);
+        console.log('currentUserId:', currentUserId);
+        console.log('partnerId:', partnerId);
+
+        if (!Array.isArray(allUsers)) {
+            console.error('allUsers is not an array!', allUsers);
+            allUsers = [];
+        }
+
+        // --- CSRF helper ---
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // --- Helper: format number as ISK ---
+        function formatISK(value) {
+            const sign = value < 0 ? '-' : '';
+            const absVal = Math.abs(Math.round(value));
+            const formatted = absVal.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            return sign + formatted + ' kr.';
+        }
+
+        // --- Helper: get transaction total from the DOM (uses data-total) ---
+        function getTransactionTotal(txnId) {
+            const editor = document.querySelector(`.split-editor[data-txn-id="${txnId}"]`);
+            if (editor && editor.dataset.total !== undefined) {
+                const total = parseInt(editor.dataset.total, 10);
+                if (!isNaN(total)) return total;
+            }
+            // fallback to old method
+            const totalEl = document.querySelector('#split-editor-' + txnId + ' strong');
+            if (totalEl) {
+                const raw = totalEl.textContent.replace('Total: ', '').trim();
+                // Remove thousands separators (dots) and currency suffix
+                const cleaned = raw.replace(/\./g, '').replace(/\s*kr\.?\s*/, '').trim();
+                return parseInt(cleaned, 10) || 0;
+            }
+            const row = document.getElementById('txn-' + txnId);
+            if (row) {
+                const amountCell = row.querySelector('.text-end');
+                if (amountCell) {
+                    const raw = amountCell.textContent.trim();
+                    const cleaned = raw.replace(/\./g, '').replace(/\s*kr\.?\s*/, '').trim();
+                    return parseInt(cleaned, 10) || 0;
+                }
+            }
+            return 0;
+        }
+
+        // --- Helper: update summary banner after split changes ---
+        function updateSummaryBanner(txnId, splits) {
+            const summaryRow = document.getElementById('summary-' + txnId);
+            if (!splits || splits.length <= 1) {
+                if (summaryRow) summaryRow.remove();
+                return;
+            }
+            const items = [];
+            const ownerSplit = splits.find(s => s.user_id === currentUserId);
+            const otherSplits = splits.filter(s => s.user_id !== currentUserId);
+            if (ownerSplit) {
+                items.push({ name: 'me', amount: ownerSplit.amount });
+            }
+            const others = otherSplits.map(s => {
+                const user = allUsers.find(u => u.id === s.user_id);
+                const name = user ? user.username : 'unknown';
+                return { name: name.slice(0,4), amount: s.amount };
+            });
+            others.sort((a,b) => a.name.localeCompare(b.name));
+            items.push(...others);
+            const summaryText = items.map(item => `${item.name}: ${formatISK(item.amount)}`).join(' | ');
+            if (summaryRow) {
+                summaryRow.querySelector('span:last-child').textContent = summaryText;
+            } else {
+                const mainRow = document.getElementById('txn-' + txnId);
+                const newRow = document.createElement('tr');
+                newRow.id = 'summary-' + txnId;
+                newRow.className = 'split-summary-row';
+                newRow.style.background = '#f8f9fa';
+                newRow.innerHTML = `
+                    <td colspan="5" style="padding: 0.1rem 0.5rem; font-size: 0.8rem; color: #4a5568;">
+                        <span style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="font-weight: 500;">Split:</span>
+                            <span>${summaryText}</span>
+                        </span>
+                    </td>
+                `;
+                mainRow.parentNode.insertBefore(newRow, mainRow.nextSibling);
+            }
+        }
+
+        // --- Generic save function (sends splits and handles response) ---
+        function saveSplits(txnId, splits, closeEditor = true) {
+            const total = getTransactionTotal(txnId);
+            const sum = splits.reduce((acc, s) => acc + s.amount, 0);
+            if (Math.abs(sum - total) > 0.01) {
+                document.getElementById('split-errors-' + txnId).textContent =
+                    `Sum of splits (${sum}) must equal transaction amount (${total}).`;
+                return Promise.reject('Sum mismatch');
+            }
+            const ownerSplit = splits.find(s => s.user_id === currentUserId);
+            const ownerShare = ownerSplit ? ownerSplit.amount : 0;
+            let validOwner = false;
+            if (total < 0) validOwner = ownerShare <= 0 && ownerShare >= total;
+            else if (total > 0) validOwner = ownerShare >= 0 && ownerShare <= total;
+            else validOwner = ownerShare === 0;
+            if (!validOwner) {
+                document.getElementById('split-errors-' + txnId).textContent =
+                    `Owner's share (${ownerShare}) is invalid for this transaction (${total}).`;
+                return Promise.reject('Invalid owner share');
+            }
+
+            console.log('Sending splits for txn', txnId, ':', JSON.stringify({ splits: splits }));
+
+            return fetch('/finance/api/update-splits/' + txnId + '/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ splits: splits })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        console.error('Server error response:', text);
+                        throw new Error(text || 'Server error');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'ok') {
+                    transactionSplits[txnId] = splits;
+                    updateSummaryBanner(txnId, splits);
+                    if (closeEditor) {
+                        const editor = document.getElementById('split-editor-' + txnId);
+                        if (editor) editor.style.display = 'none';
+                    }
+                    document.getElementById('split-errors-' + txnId).textContent = '';
+                    return data;
+                } else {
+                    document.getElementById('split-errors-' + txnId).textContent = data.error || 'Error saving.';
+                    return Promise.reject(data.error);
+                }
+            })
+            .catch(err => {
+                document.getElementById('split-errors-' + txnId).textContent = 'Error: ' + err.message;
+                console.error('Fetch error:', err);
+                return Promise.reject(err);
+            });
+        }
+
+        // --- Build editor rows ---
+        function buildSplitEditor(txnId) {
+            const container = document.getElementById('split-rows-' + txnId);
+            if (!container) {
+                console.error('Container missing for txn:', txnId);
+                return;
+            }
+            container.innerHTML = '';
+
+            let splits = transactionSplits[txnId];
+            if (!Array.isArray(splits)) {
+                console.warn('Splits for txn', txnId, 'is not an array, defaulting to empty.', splits);
+                splits = [];
+            }
+
+            const ownerSplit = splits.find(s => s.user_id === currentUserId);
+            const otherSplits = splits.filter(s => s.user_id !== currentUserId);
+
+            const ownerRow = createOwnerRow(txnId, ownerSplit ? ownerSplit.amount : 0);
+            container.appendChild(ownerRow);
+
+            otherSplits.forEach(s => {
+                const row = createOtherRow(txnId, s.user_id, s.username, s.amount);
+                container.appendChild(row);
+            });
+
+            updateOwnerShare(txnId);
+        }
+
+        // --- Create owner row (read-only) ---
+        function createOwnerRow(txnId, amount) {
+            const row = document.createElement('div');
+            row.className = 'row mb-1 split-row owner-row';
+            row.innerHTML = `
+                <div class="col-md-4">
+                    <strong>Me (${currentUserName})</strong>
+                </div>
+                <div class="col-md-4">
+                    <input type="number" class="form-control form-control-sm owner-amount" value="${amount}" readonly style="background:#e9ecef;">
+                </div>
+                <div class="col-md-2">
+                    <span class="text-muted">(remaining)</span>
+                </div>
+            `;
+            return row;
+        }
+
+        // --- Helper: parse multi-number expressions like "-125-200-1249" ---
+        function parseMultiNumber(value) {
+            const cleaned = value.replace(/\s/g, '');
+            const matches = cleaned.match(/[+-]?\d+/g);
+            if (!matches) return null;
+            let sum = 0;
+            for (let m of matches) {
+                const num = parseInt(m, 10);
+                if (!isNaN(num)) sum += num;
+            }
+            return sum;
+        }
+
+        // --- Create a row for another user ---
+        function createOtherRow(txnId, userId, username, amount) {
+            const row = document.createElement('div');
+            row.className = 'row mb-1 split-row other-row';
+            let optionsHtml = '';
+            optionsHtml += `<option value="${userId}" selected>${username}</option>`;
+            const filteredUsers = allUsers.filter(u => u.id !== currentUserId);
+            filteredUsers.forEach(u => {
+                if (u.id !== userId) {
+                    optionsHtml += `<option value="${u.id}">${u.username}</option>`;
+                }
+            });
+            row.innerHTML = `
+                <div class="col-md-4">
+                    <select class="form-select form-select-sm other-user-select" data-txn-id="${txnId}">
+                        ${optionsHtml}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <input type="text" class="form-control form-control-sm other-amount" data-txn-id="${txnId}" value="${amount}" placeholder="Enter amount(s)">
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-sm btn-danger remove-other-row" data-txn-id="${txnId}">×</button>
+                </div>
+            `;
+            const amountInput = row.querySelector('.other-amount');
+            // Live update
+            amountInput.addEventListener('input', function() {
+                updateOwnerShare(txnId);
+            });
+            // Parse multi-number on blur
+            amountInput.addEventListener('blur', function() {
+                const val = this.value.trim();
+                if (val === '') return;
+                const parsed = parseMultiNumber(val);
+                if (parsed !== null && parsed !== parseInt(val, 10)) {
+                    this.value = parsed;
+                    updateOwnerShare(txnId);
+                }
+            });
+            row.querySelector('.other-user-select').addEventListener('change', function() {
+                updateOwnerShare(txnId);
+            });
+            row.querySelector('.remove-other-row').addEventListener('click', function() {
+                row.remove();
+                updateOwnerShare(txnId);
+            });
+            return row;
+        }
+
+        // --- Update owner share and validity badge ---
+        function updateOwnerShare(txnId) {
+            const container = document.getElementById('split-rows-' + txnId);
+            if (!container) return;
+
+            const otherRows = container.querySelectorAll('.other-row');
+            let sumOthers = 0;
+
+            otherRows.forEach(row => {
+                const val = row.querySelector('.other-amount').value.trim();
+                if (val === '') return;
+                // Use the multi‑number parser to sum all complete numbers
+                const parsed = parseMultiNumber(val);
+                if (parsed !== null) {
+                    sumOthers += parsed;
+                } else {
+                    // Fallback: try to parse as a plain integer
+                    const num = parseInt(val, 10);
+                    if (!isNaN(num)) sumOthers += num;
+                }
+            });
+
+            const total = getTransactionTotal(txnId);
+            const ownerShare = total - sumOthers;
+            const ownerInput = container.querySelector('.owner-amount');
+            if (ownerInput) ownerInput.value = ownerShare;
+
+            const display = document.getElementById('sum-display-' + txnId);
+            const badge = document.getElementById('valid-badge-' + txnId);
+            if (display) display.textContent = 'Sum: ' + total;
+
+            let valid = false;
+            if (total < 0) {
+                valid = ownerShare <= 0 && ownerShare >= total;
+            } else if (total > 0) {
+                valid = ownerShare >= 0 && ownerShare <= total;
+            } else {
+                valid = ownerShare === 0;
+            }
+            if (badge) {
+                badge.className = valid ? 'badge bg-success' : 'badge bg-danger';
+                badge.textContent = valid ? 'Valid' : 'Over‑assigned';
+            }
+        }
+
+        // --- Event delegation ---
+        const tbody = document.querySelector('.table-transactions tbody');
+        if (!tbody) {
+            console.error('Table body not found');
+            return;
+        }
+
+        // --- Dropdown change (handles me, 5050, split) ---
+        document.querySelectorAll('.split-type').forEach(select => {
+            select.addEventListener('change', function() {
+                const txnId = this.dataset.txnId;
+                const editor = document.getElementById('split-editor-' + txnId);
+                const value = this.value;
+
+                if (value === 'split') {
+                    editor.style.display = 'table-row';
+                    buildSplitEditor(txnId);
+                    return;
+                }
+
+                // For "me" and "5050", hide editor and perform AJAX
+                editor.style.display = 'none';
+
+                const total = getTransactionTotal(txnId);
+                let splits = [];
+
+                if (value === 'me') {
+                    splits = [{ user_id: currentUserId, amount: total }];
+                } else if (value === '5050') {
+                    if (!partnerId) {
+                        alert('You have not set a partner. Please set one in your profile.');
+                        this.value = 'me';
+                        return;
+                    }
+                    const ownerAmount = Math.ceil(total / 2);
+                    const partnerAmount = total - ownerAmount;
+                    splits = [
+                        { user_id: currentUserId, amount: ownerAmount },
+                        { user_id: partnerId, amount: partnerAmount }
+                    ];
+                }
+
+                saveSplits(txnId, splits, true)
+                    .catch(() => location.reload());
+            });
+
+            // --- Click handler to reopen editor if already on "split" ---
+            select.addEventListener('click', function() {
+                if (this.value === 'split') {
+                    const txnId = this.dataset.txnId;
+                    const editor = document.getElementById('split-editor-' + txnId);
+                    if (editor && editor.style.display !== 'table-row') {
+                        editor.style.display = 'table-row';
+                        buildSplitEditor(txnId);
+                    }
+                }
+            });
+        });
+
+        // --- Add person ---
+        tbody.addEventListener('click', function(e) {
+            const btn = e.target.closest('.add-split-row');
+            if (!btn) return;
+            const txnId = btn.dataset.txnId;
+            const container = document.getElementById('split-rows-' + txnId);
+            if (!container) return;
+            const existingOtherIds = Array.from(container.querySelectorAll('.other-row .other-user-select'))
+                .map(sel => parseInt(sel.value));
+            const availableUser = allUsers.find(u => u.id !== currentUserId && !existingOtherIds.includes(u.id));
+            if (!availableUser) {
+                document.getElementById('split-errors-' + txnId).textContent = 'No more users available to add.';
+                return;
+            }
+            const row = createOtherRow(txnId, availableUser.id, availableUser.username, 0);
+            container.appendChild(row);
+            updateOwnerShare(txnId);
+        });
+
+        // --- Save splits button ---
+        tbody.addEventListener('click', function(e) {
+            const btn = e.target.closest('.save-splits');
+            if (!btn) return;
+            const txnId = btn.dataset.txnId;
+            const container = document.getElementById('split-rows-' + txnId);
+            if (!container) {
+                document.getElementById('split-errors-' + txnId).textContent = 'Container missing.';
+                return;
+            }
+            const ownerInput = container.querySelector('.owner-amount');
+            if (!ownerInput) {
+                document.getElementById('split-errors-' + txnId).textContent = 'Owner row missing.';
+                return;
+            }
+            const ownerShare = parseInt(ownerInput.value, 10) || 0;
+            const otherRows = container.querySelectorAll('.other-row');
+            const splits = [];
+            if (ownerShare !== 0) splits.push({ user_id: currentUserId, amount: ownerShare });
+            otherRows.forEach(row => {
+                const userId = parseInt(row.querySelector('.other-user-select').value, 10);
+                const amount = parseInt(row.querySelector('.other-amount').value, 10) || 0;
+                if (userId && amount !== 0) splits.push({ user_id: userId, amount: amount });
+            });
+
+            saveSplits(txnId, splits, true)
+                .catch(() => {});
+        });
+
+        // --- Cancel button ---
+        tbody.addEventListener('click', function(e) {
+            const btn = e.target.closest('.cancel-splits');
+            if (!btn) return;
+            const txnId = btn.dataset.txnId;
+            document.getElementById('split-editor-' + txnId).style.display = 'none';
+        });
+
+        // --- On load: do NOT automatically open editors for "split" ---
+        // (Removed the loop that sets display:table-row)
+
+    });
+
+        // ---- vertical file upload handler ----
+    const fileInputVert = document.getElementById('file-input-vertical');
+    const fileNameSpan = document.getElementById('file-name-vertical');
+    const submitWrapper = document.getElementById('submit-wrapper-vertical');
+
+    if (fileInputVert) {
+        fileInputVert.addEventListener('change', function() {
+            if (this.files && this.files.length > 0) {
+                fileNameSpan.textContent = this.files[0].name;
+                fileNameSpan.classList.remove('file-placeholder');
+                submitWrapper.style.display = 'block';
+            } else {
+                fileNameSpan.textContent = 'No file selected';
+                fileNameSpan.classList.add('file-placeholder');
+                submitWrapper.style.display = 'none';
+            }
+        });
+    }
+    
+</script>
 
 {% endblock content %}

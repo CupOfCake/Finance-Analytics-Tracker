@@ -36,9 +36,18 @@ class AccountAuthenticationForm(forms.ModelForm):
 class AccountUpdateForm(forms.ModelForm):
     class Meta:
         model = Account
-        fields = ('email', 'username')
+        fields = ('profile_pic', 'email', 'username', 'partner')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Exclude the current user from partner choices
+        if self.instance and self.instance.pk:
+            self.fields['partner'].queryset = Account.objects.exclude(pk=self.instance.pk)
+        else:
+            self.fields['partner'].queryset = Account.objects.all()
 
     def clean_email(self):
+        # ... your existing clean_email ...
         if self.is_valid():
             email = self.cleaned_data['email']
             try:
@@ -48,6 +57,7 @@ class AccountUpdateForm(forms.ModelForm):
             raise forms.ValidationError('Email "%s" is already in use.' % account.email)
 
     def clean_username(self):
+        # ... your existing clean_username ...
         if self.is_valid():
             username = self.cleaned_data['username']
             try:

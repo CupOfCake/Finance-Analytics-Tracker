@@ -1,0 +1,373 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+{% load static %}
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: 'Poppins', sans-serif;
+        background: #f0f2f5;
+        min-height: 100vh;
+    }
+
+    .ftco-section {
+        padding: clamp(2rem, 6vw, 4rem) 0;
+    }
+
+    .update-card {
+        background: #fff;
+        border-radius: 20px;
+        padding: 2rem 2rem;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        max-width: 500px;
+        width: 100%;
+        margin: 0 auto;
+    }
+
+    .update-card h3 {
+        font-weight: 700;
+        color: #1e2a36;
+        font-size: 1.8rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #4a5568;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    /* ---- regular text inputs ---- */
+    .form-control {
+        height: 48px;
+        background: #f0f2f5;
+        color: #000;
+        font-size: 16px;
+        border-radius: 50px;
+        box-shadow: none;
+        border: none;
+        padding-left: 20px;
+        padding-right: 20px;
+        transition: all 0.2s ease-in-out;
+        width: 100%;
+        font-weight: 400;
+        line-height: 1.5;
+    }
+
+    .form-control:focus {
+        background: #e8eaed;
+        border: none;
+        outline: none;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05), 0 0 0 2px rgba(0, 128, 128, 0.1);
+    }
+
+    /* ---- Custom file upload (NO hover effect on the whole bar) ---- */
+    .custom-file-upload {
+        display: flex;
+        align-items: center;
+        height: 48px;
+        background: #f0f2f5;
+        border-radius: 50px;
+        padding: 0 5px 0 0;
+        overflow: hidden;
+        cursor: default;
+        /* No transition, no hover background change */
+    }
+
+    .custom-file-upload input[type="file"] {
+        display: none;
+    }
+
+    .custom-file-upload .upload-btn {
+        flex-shrink: 0;
+        height: 38px;
+        margin-left: 5px;
+        padding: 0 20px;
+        background: linear-gradient(135deg, #23adad 0%, #00555a 100%);
+        color: #fff;
+        border: none;
+        border-radius: 40px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        transition: 0.25s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
+    }
+
+    .custom-file-upload .upload-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 14px rgba(0, 128, 128, 0.3);
+    }
+
+    .custom-file-upload .file-name {
+        flex: 1;
+        padding: 0 15px;
+        font-size: 0.9rem;
+        color: #4a5568;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .custom-file-upload .file-name.file-placeholder {
+        color: #a0aec0;
+        font-weight: 300;
+    }
+
+    /* ---- submit button ---- */
+    .btn-primary {
+        background: linear-gradient(135deg, #23adad 0%, #00555a 100%);
+        border: none;
+        border-radius: 40px;
+        height: 52px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-size: 0.9rem;
+        transition: 0.25s;
+        color: white;
+        width: 100%;
+        cursor: pointer;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px -5px rgba(102, 126, 234, 0.4);
+    }
+
+    .form-group {
+        margin-bottom: 1.2rem;
+    }
+
+    /* ---- profile picture circle ---- */
+    .image_circle {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        overflow: hidden;
+        position: relative;
+        margin: 0 auto 20px auto;
+        border: 3px solid #e0e0e0;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+    .image_circle img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    /* ---- error & success messages ---- */
+    .errorlist {
+        list-style: none;
+        padding: 0;
+        margin-top: 0.3rem;
+        font-size: 0.85rem;
+        color: #e74c3c;
+    }
+    .errorlist li {
+        margin-bottom: 0.2rem;
+    }
+    .success-message {
+        color: #27ae60;
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+        padding: 0.5rem 1rem;
+        background: #eafaf1;
+        border-radius: 30px;
+        text-align: center;
+    }
+    .non-field-error {
+        color: #e74c3c;
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+        padding: 0.5rem 1rem;
+        background: #fdedec;
+        border-radius: 30px;
+        text-align: center;
+    }
+
+    /* ---- change password link ---- */
+    .change-pw-link {
+        display: block;
+        text-align: center;
+        margin-top: 1rem;
+        font-size: 0.9rem;
+    }
+    .change-pw-link a {
+        color: #008080;
+        text-decoration: none;
+        transition: 0.2s;
+    }
+    .change-pw-link a:hover {
+        text-decoration: underline;
+    }
+
+    /* ---- responsive ---- */
+    @media (max-width: 480px) {
+        .update-card {
+            padding: 1.5rem;
+        }
+        .update-card h3 {
+            font-size: 1.5rem;
+        }
+        .custom-file-upload .upload-btn {
+            font-size: 0.75rem;
+            padding: 0 14px;
+        }
+        .custom-file-upload .file-name {
+            font-size: 0.8rem;
+            padding: 0 10px;
+        }
+    }
+</style>
+
+<section class="ftco-section">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="update-card">
+                    <h3 class="text-center">Edit Account</h3>
+
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+
+                        <!-- Profile Picture -->
+                        <div class="image_circle">
+                            {% if user.profile_pic %}
+                                <img src="{{ user.profile_pic.url }}" alt="{{ user.username }}">
+                            {% else %}
+                                <img src="{% static 'DefaultPFP.png' %}" alt="{{ user.username }}">
+                            {% endif %}
+                        </div>
+
+                        <!-- Custom file upload -->
+                        <div class="form-group">
+                            <label class="label" for="profile_pic">Change Profile Picture</label>
+                            <div class="custom-file-upload">
+                                <label class="upload-btn" for="profile_pic">Choose Photo</label>
+                                <span class="file-name file-placeholder" id="file-name-display">No file selected</span>
+                                <input type="file" name="profile_pic" id="profile_pic" accept="image/*">
+                            </div>
+                            {% if account_form.profile_pic.errors %}
+                                <ul class="errorlist">
+                                    {% for error in account_form.profile_pic.errors %}
+                                        <li>{{ error|striptags }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+
+                        <!-- Email -->
+                        <div class="form-group">
+                            <label class="label" for="email">Email</label>
+                            <input type="email" name="email" class="form-control" placeholder="your-email@gmail.com" id="email" value="{{ account_form.email.value|default:'' }}">
+                            {% if account_form.email.errors %}
+                                <ul class="errorlist">
+                                    {% for error in account_form.email.errors %}
+                                        <li>{{ error|striptags }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+
+                        <!-- Username -->
+                        <div class="form-group">
+                            <label class="label" for="username">Username</label>
+                            <input type="text" name="username" class="form-control" placeholder="Your Username" id="username" value="{{ account_form.username.value|default:'' }}">
+                            {% if account_form.username.errors %}
+                                <ul class="errorlist">
+                                    {% for error in account_form.username.errors %}
+                                        <li>{{ error|striptags }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+
+                        <!-- Partner -->
+                        <div class="form-group">
+                            <label class="label" for="partner">Partner (for 50/50 splits)</label>
+                            <select name="partner" id="partner" class="form-control">
+                                <option value="">No partner</option>
+                                {% for user in all_users %}
+                                    <option value="{{ user.id }}" {% if account_form.partner.value == user.id %}selected{% endif %}>
+                                        {{ user.username }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            {% if account_form.partner.errors %}
+                                <ul class="errorlist">
+                                    {% for error in account_form.partner.errors %}
+                                        <li>{{ error|striptags }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+
+                        <!-- Non-field errors -->
+                        {% if account_form.non_field_errors %}
+                            <div class="non-field-error">
+                                {{ account_form.non_field_errors|striptags }}
+                            </div>
+                        {% endif %}
+
+                        <!-- Success message -->
+                        {% if success_message %}
+                            <div class="success-message">{{ success_message }}</div>
+                        {% endif %}
+
+                        <!-- Submit -->
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+
+                        <!-- Change Password link -->
+                        <div class="change-pw-link">
+                            <a href="{% url 'password_change' %}">Change Password</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Minimal script: only updates the filename when a file is chosen -->
+<script>
+    // Get the input and the display span
+    var fileInput = document.getElementById('profile_pic');
+    var display = document.getElementById('file-name-display');
+
+    // When the user selects a file, update the display
+    fileInput.onchange = function() {
+        if (this.files && this.files.length > 0) {
+            display.textContent = this.files[0].name;
+            display.classList.remove('placeholder');
+        } else {
+            display.textContent = 'No file selected';
+            display.classList.add('file-placeholder');
+        }
+    };
+</script>
+
+{% endblock content %}
