@@ -42,6 +42,10 @@ urlpatterns = [
     path('account_update/', account_update_view, name='account_update'),
 
 
+    # sub paths
+    path('finance/', include('finance.urls')),   # this makes the URL: /finance/api/update-splits/...
+
+
     # Password reset links (ref: https://github.com/django/django/blob/master/django/contrib/auth/views.py)
     path('password_change/done/', auth_views.PasswordChangeDoneView.as_view(template_name='registration/password_change_done.html'), 
         name='password_change_done'),

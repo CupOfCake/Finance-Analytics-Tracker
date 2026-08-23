@@ -5,7 +5,6 @@
 {% load static %}
 
 <style>
-    /* All CSS stays exactly the same as your last version */
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
     * {
@@ -173,6 +172,63 @@
         color: #4a5568;
     }
 
+    /* ---- Transaction toolbar (search + date filters) ---- */
+    .transaction-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .transaction-toolbar .search-box {
+        flex: 1;
+        min-width: 180px;
+    }
+
+    .transaction-toolbar .search-box input {
+        background: #f0f2f5;
+        border: none;
+        border-radius: 50px;
+        height: 36px;
+        padding: 0 18px;
+        font-size: 0.85rem;
+        width: 100%;
+        font-family: 'Poppins', sans-serif;
+        transition: background 0.2s;
+    }
+
+    .transaction-toolbar .search-box input:focus {
+        outline: none;
+        background: #e8eaed;
+        box-shadow: 0 0 0 2px rgba(0, 128, 128, 0.1);
+    }
+
+    .transaction-toolbar .date-filters {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .transaction-toolbar .date-filters select {
+        background: #f0f2f5;
+        border: none;
+        border-radius: 50px;
+        height: 36px;
+        padding: 0 15px;
+        font-size: 0.85rem;
+        min-width: 100px;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .transaction-toolbar .date-filters select:focus {
+        outline: none;
+        background: #e8eaed;
+        box-shadow: 0 0 0 2px rgba(0, 128, 128, 0.1);
+    }
+
     .table-transactions {
         font-size: 0.9rem;
         margin-bottom: 0;
@@ -254,6 +310,17 @@
         .table-transactions {
             font-size: 0.8rem;
         }
+        .transaction-toolbar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .transaction-toolbar .date-filters {
+            flex-wrap: wrap;
+        }
+        .transaction-toolbar .date-filters select {
+            flex: 1;
+            min-width: 80px;
+        }
     }
 
     .bottom-row {
@@ -311,15 +378,10 @@
             <div class="col-12">
                 <div class="profile-card" style="height: auto;">
                     <div class="row">
-                        <!-- Filter sidebar (placeholder) -->
+                        <!-- Filter sidebar -->
                         <div class="col-md-3 col-lg-2">
                             <div class="filter-section">
                                 <h6 style="font-weight: 600; color: #1e2a36; margin-bottom: 1rem;">Filters</h6>
-
-                                <div class="filter-group">
-                                    <label>Date range</label>
-                                    <input type="text" class="form-control-sm" placeholder="Start – End" style="width: 100%;">
-                                </div>
 
                                 <div class="filter-group">
                                     <label>Category</label>
@@ -353,8 +415,42 @@
                             </div>
                         </div>
 
-                        <!-- Transaction list (right) -->
+                        <!-- Transaction list -->
                         <div class="col-md-9 col-lg-10">
+                            <!-- Toolbar: Search + Year/Month -->
+                            <div class="transaction-toolbar">
+                                <div class="search-box">
+                                    <input type="text" placeholder="Search transactions...">
+                                </div>
+                                <div class="date-filters">
+                                    <select>
+                                        <option>All years</option>
+                                        <option>2025</option>
+                                        <option>2024</option>
+                                        <option>2023</option>
+                                        <option>2022</option>
+                                        <option>2021</option>
+                                        <option>2020</option>
+                                    </select>
+                                    <select>
+                                        <option>All months</option>
+                                        <option>January</option>
+                                        <option>February</option>
+                                        <option>March</option>
+                                        <option>April</option>
+                                        <option>May</option>
+                                        <option>June</option>
+                                        <option>July</option>
+                                        <option>August</option>
+                                        <option>September</option>
+                                        <option>October</option>
+                                        <option>November</option>
+                                        <option>December</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Table -->
                             <div style="overflow-x: auto;">
                                 <table class="table table-transactions">
                                     <thead>
@@ -363,25 +459,58 @@
                                             <th>Description</th>
                                             <th>Category</th>
                                             <th class="text-end">Amount</th>
+                                            <th class="text-center">Split</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {% for transaction in transactions %}
-                                            <tr>
+                                            <!-- Main row -->
+                                            <tr id="txn-{{ transaction.id }}">
                                                 <td>{{ transaction.transaction_date|date:"Y-m-d" }}</td>
                                                 <td>{{ transaction.transaction_name }}</td>
                                                 <td>
-                                                    <span class="badge-category {% if transaction.transaction_type|lower == 'income' %}income{% elif transaction.transaction_type|lower == 'expense' %}expense{% else %}{% endif %}">
+                                                    <span class="badge-category {% if transaction.transaction_type|lower == 'income' %}income{% elif transaction.transaction_type|lower == 'expense' %}expense{% endif %}">
                                                         {{ transaction.transaction_type }}
                                                     </span>
+                                                </td>
                                                 <td class="text-end">{{ transaction.transaction_ammount }}</td>
-                                            </tr>
-                                        {% empty %}
-                                            <tr>
-                                                <td colspan="4" style="text-align: center; color: #a0aec0; padding: 2rem 0;">
-                                                    No transactions found.
+                                                <td class="text-center">
+                                                    <select class="form-select form-select-sm split-type" data-txn-id="{{ transaction.id }}" style="width:auto; display:inline-block;">
+                                                        <option value="me" {% if transaction.get_split_type == 'me' %}selected{% endif %}>Me</option>
+                                                        <option value="5050" {% if transaction.get_split_type == '5050' %}selected{% endif %}>50/50</option>
+                                                        <option value="split" {% if transaction.get_split_type == 'split' %}selected{% endif %}>Split</option>
+                                                    </select>
                                                 </td>
                                             </tr>
+                                            <!-- Hidden split editor row -->
+                                            <tr id="split-editor-{{ transaction.id }}" style="display: none; background: #f8f9fa;">
+                                                <td colspan="5">
+                                                    <div class="split-editor" data-txn-id="{{ transaction.id }}">
+                                                        <div class="row mb-2">
+                                                            <div class="col-md-6">
+                                                                <strong>Total: {{ transaction.transaction_ammount }}</strong>
+                                                            </div>
+                                                            <div class="col-md-6 text-end">
+                                                                <span id="sum-display-{{ transaction.id }}" style="font-weight:bold;">Sum: 0</span>
+                                                                <span id="valid-badge-{{ transaction.id }}" class="badge bg-warning">Not saved</span>
+                                                            </div>
+                                                        </div>
+                                                        <div id="split-rows-{{ transaction.id }}">
+                                                            <!-- Will be populated by JavaScript -->
+                                                        </div>
+                                                        <div class="row mt-2">
+                                                            <div class="col">
+                                                                <button class="btn btn-sm btn-outline-secondary add-split-row" data-txn-id="{{ transaction.id }}">+ Add person</button>
+                                                                <button class="btn btn-sm btn-primary save-splits" data-txn-id="{{ transaction.id }}" style="margin-left:10px;">Save splits</button>
+                                                                <button class="btn btn-sm btn-secondary cancel-splits" data-txn-id="{{ transaction.id }}">Cancel</button>
+                                                            </div>
+                                                        </div>
+                                                        <div id="split-errors-{{ transaction.id }}" class="text-danger mt-2"></div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% empty %}
+                                            <tr><td colspan="5" style="text-align:center; color: #a0aec0; padding:2rem 0;">No transactions found.</td></tr>
                                         {% endfor %}
                                     </tbody>
                                 </table>
@@ -397,5 +526,296 @@
 
     </div>
 </section>
+
+{{ current_user_id|json_script:"current-user-id" }}
+{{ current_user_name|json_script:"current-user-name" }}
+{{ transaction_splits_json|json_script:"transaction-splits-data" }}
+{{ all_users_json|json_script:"all-users-data" }}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- Parse data from Django ---
+        let transactionSplits, allUsers, currentUserId, currentUserName;
+        try {
+            transactionSplits = JSON.parse(document.getElementById('transaction-splits-data').textContent);
+            allUsers = JSON.parse(document.getElementById('all-users-data').textContent);
+            currentUserId = parseInt(JSON.parse(document.getElementById('current-user-id').textContent));
+            currentUserName = JSON.parse(document.getElementById('current-user-name').textContent);
+        } catch (e) {
+            console.error('JSON parsing error:', e);
+            return;
+        }
+
+        console.log('transactionSplits:', transactionSplits);
+        console.log('allUsers:', allUsers);
+        console.log('currentUserId:', currentUserId);
+
+        if (!Array.isArray(allUsers)) {
+            console.error('allUsers is not an array!', allUsers);
+            allUsers = [];
+        }
+
+        // --- CSRF helper ---
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // --- Build editor rows ---
+        function buildSplitEditor(txnId) {
+            const container = document.getElementById('split-rows-' + txnId);
+            if (!container) {
+                console.error('Container missing for txn:', txnId);
+                return;
+            }
+            container.innerHTML = '';
+
+            let splits = transactionSplits[txnId];
+            if (!Array.isArray(splits)) {
+                console.warn('Splits for txn', txnId, 'is not an array, defaulting to empty.', splits);
+                splits = [];
+            }
+
+            const ownerSplit = splits.find(s => s.user_id === currentUserId);
+            const otherSplits = splits.filter(s => s.user_id !== currentUserId);
+
+            const ownerRow = createOwnerRow(txnId, ownerSplit ? ownerSplit.amount : 0);
+            container.appendChild(ownerRow);
+
+            otherSplits.forEach(s => {
+                const row = createOtherRow(txnId, s.user_id, s.username, s.amount);
+                container.appendChild(row);
+            });
+
+            updateOwnerShare(txnId);
+        }
+
+        // --- Create owner row (read-only) ---
+        function createOwnerRow(txnId, amount) {
+            const row = document.createElement('div');
+            row.className = 'row mb-1 split-row owner-row';
+            row.innerHTML = `
+                <div class="col-md-4">
+                    <strong>Me (${currentUserName})</strong>
+                </div>
+                <div class="col-md-4">
+                    <input type="number" class="form-control form-control-sm owner-amount" value="${amount}" readonly style="background:#e9ecef;">
+                </div>
+                <div class="col-md-2">
+                    <span class="text-muted">(remaining)</span>
+                </div>
+            `;
+            return row;
+        }
+
+        // --- Create a row for another user ---
+        function createOtherRow(txnId, userId, username, amount) {
+            const row = document.createElement('div');
+            row.className = 'row mb-1 split-row other-row';
+            let optionsHtml = '';
+            optionsHtml += `<option value="${userId}" selected>${username}</option>`;
+            const filteredUsers = allUsers.filter(u => u.id !== currentUserId);
+            filteredUsers.forEach(u => {
+                if (u.id !== userId) {
+                    optionsHtml += `<option value="${u.id}">${u.username}</option>`;
+                }
+            });
+            row.innerHTML = `
+                <div class="col-md-4">
+                    <select class="form-select form-select-sm other-user-select" data-txn-id="${txnId}">
+                        ${optionsHtml}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <input type="number" class="form-control form-control-sm other-amount" data-txn-id="${txnId}" value="${amount}" step="1">
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-sm btn-danger remove-other-row" data-txn-id="${txnId}">×</button>
+                </div>
+            `;
+            row.querySelector('.other-amount').addEventListener('input', function() {
+                updateOwnerShare(txnId);
+            });
+            row.querySelector('.other-user-select').addEventListener('change', function() {
+                updateOwnerShare(txnId);
+            });
+            row.querySelector('.remove-other-row').addEventListener('click', function() {
+                row.remove();
+                updateOwnerShare(txnId);
+            });
+            return row;
+        }
+
+        // --- Update owner share and validity badge ---
+        function updateOwnerShare(txnId) {
+            const container = document.getElementById('split-rows-' + txnId);
+            if (!container) return;
+            const otherRows = container.querySelectorAll('.other-row');
+            let sumOthers = 0;
+            otherRows.forEach(row => {
+                const amt = parseFloat(row.querySelector('.other-amount').value) || 0;
+                sumOthers += amt;
+            });
+
+            const totalEl = document.querySelector('#split-editor-' + txnId + ' strong');
+            if (!totalEl) return;
+            const total = parseFloat(totalEl.textContent.replace('Total: ', '')) || 0;
+            const ownerShare = total - sumOthers;
+            const ownerInput = container.querySelector('.owner-amount');
+            if (ownerInput) ownerInput.value = ownerShare;
+
+            const display = document.getElementById('sum-display-' + txnId);
+            const badge = document.getElementById('valid-badge-' + txnId);
+            if (display) display.textContent = 'Sum: ' + total;
+
+            let valid = false;
+            if (total < 0) {
+                valid = ownerShare <= 0 && ownerShare >= total;
+            } else if (total > 0) {
+                valid = ownerShare >= 0 && ownerShare <= total;
+            } else {
+                valid = ownerShare === 0;
+            }
+            if (badge) {
+                badge.className = valid ? 'badge bg-success' : 'badge bg-danger';
+                badge.textContent = valid ? 'Valid' : 'Over‑assigned';
+            }
+        }
+
+        // --- Event delegation ---
+        const tbody = document.querySelector('.table-transactions tbody');
+        if (!tbody) {
+            console.error('Table body not found');
+            return;
+        }
+
+        // Dropdown change
+        document.querySelectorAll('.split-type').forEach(select => {
+            select.addEventListener('change', function() {
+                const txnId = this.dataset.txnId;
+                const editor = document.getElementById('split-editor-' + txnId);
+                if (this.value === 'split') {
+                    editor.style.display = 'table-row';
+                    buildSplitEditor(txnId);
+                } else {
+                    editor.style.display = 'none';
+                }
+            });
+        });
+
+        // Add person
+        tbody.addEventListener('click', function(e) {
+            const btn = e.target.closest('.add-split-row');
+            if (!btn) return;
+            const txnId = btn.dataset.txnId;
+            const container = document.getElementById('split-rows-' + txnId);
+            if (!container) return;
+            const existingOtherIds = Array.from(container.querySelectorAll('.other-row .other-user-select'))
+                .map(sel => parseInt(sel.value));
+            const availableUser = allUsers.find(u => u.id !== currentUserId && !existingOtherIds.includes(u.id));
+            if (!availableUser) {
+                document.getElementById('split-errors-' + txnId).textContent = 'No more users available to add.';
+                return;
+            }
+            const row = createOtherRow(txnId, availableUser.id, availableUser.username, 0);
+            container.appendChild(row);
+            updateOwnerShare(txnId);
+        });
+
+        // Save splits
+        tbody.addEventListener('click', function(e) {
+            const btn = e.target.closest('.save-splits');
+            if (!btn) return;
+            const txnId = btn.dataset.txnId;
+            const container = document.getElementById('split-rows-' + txnId);
+            if (!container) {
+                document.getElementById('split-errors-' + txnId).textContent = 'Container missing.';
+                return;
+            }
+            const ownerInput = container.querySelector('.owner-amount');
+            if (!ownerInput) {
+                document.getElementById('split-errors-' + txnId).textContent = 'Owner row missing.';
+                return;
+            }
+            const ownerShare = parseFloat(ownerInput.value) || 0;
+            const otherRows = container.querySelectorAll('.other-row');
+            const splits = [];
+            if (ownerShare !== 0) splits.push({ user_id: currentUserId, amount: ownerShare });
+            otherRows.forEach(row => {
+                const userId = parseInt(row.querySelector('.other-user-select').value);
+                const amount = parseFloat(row.querySelector('.other-amount').value) || 0;
+                if (userId && amount !== 0) splits.push({ user_id: userId, amount: amount });
+            });
+
+            const totalEl = document.querySelector('#split-editor-' + txnId + ' strong');
+            if (!totalEl) {
+                document.getElementById('split-errors-' + txnId).textContent = 'Total missing.';
+                return;
+            }
+            const total = parseFloat(totalEl.textContent.replace('Total: ', '')) || 0;
+            const sum = splits.reduce((acc, s) => acc + s.amount, 0);
+            if (Math.abs(sum - total) > 0.01) {
+                document.getElementById('split-errors-' + txnId).textContent =
+                    `Sum of splits (${sum}) must equal transaction amount (${total}).`;
+                return;
+            }
+
+            let validOwner = false;
+            if (total < 0) validOwner = ownerShare <= 0 && ownerShare >= total;
+            else if (total > 0) validOwner = ownerShare >= 0 && ownerShare <= total;
+            else validOwner = ownerShare === 0;
+            if (!validOwner) {
+                document.getElementById('split-errors-' + txnId).textContent =
+                    `Owner's share (${ownerShare}) is invalid for this transaction (${total}).`;
+                return;
+            }
+
+            fetch('/finance/api/update-splits/' + txnId + '/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ splits: splits })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') location.reload();
+                else document.getElementById('split-errors-' + txnId).textContent = data.error || 'Error saving.';
+            })
+            .catch(() => document.getElementById('split-errors-' + txnId).textContent = 'Network error.');
+        });
+
+        // Cancel button
+        tbody.addEventListener('click', function(e) {
+            const btn = e.target.closest('.cancel-splits');
+            if (!btn) return;
+            document.getElementById('split-editor-' + btn.dataset.txnId).style.display = 'none';
+        });
+
+        // On load: show editors for transactions already 'split'
+        document.querySelectorAll('.split-type').forEach(select => {
+            if (select.value === 'split') {
+                const txnId = select.dataset.txnId;
+                const editor = document.getElementById('split-editor-' + txnId);
+                if (editor) {
+                    editor.style.display = 'table-row';
+                    buildSplitEditor(txnId);
+                }
+            }
+        });
+
+    });
+</script>
 
 {% endblock content %}

@@ -1,8 +1,13 @@
 from django.shortcuts import render, redirect
 from operator import attrgetter
-from django.contrib.auth import login, authenticate, logout
+from django.contrib.auth import login, authenticate, logout, get_user_model
 from account.forms import AccountAuthenticationForm, RegistrationForm, AccountUpdateForm
-from finance.models import Transaction
+from finance.models import Transaction, TransactionSplit
+from django.db.models import Sum, Prefetch
+from django.shortcuts import render
+import json
+
+User = get_user_model()
 
 
 def registration_view(request):
@@ -70,10 +75,34 @@ def account_view(request):
 
     profile_owner = request.user
 
-    transactions = sorted(Transaction.objects.filter(user=request.user),key=attrgetter('transaction_date'), reverse=False)
+    transactions = (Transaction.objects
+                    .filter(user=request.user)
+                    .order_by('transaction_date') #db sort
+                    .prefetch_related(
+                        Prefetch('splits',
+                                 queryset=TransactionSplit.objects.select_related('user'))
+                    ))
+
+    # Build splits data (as a Python dict of lists)
+    transaction_splits_data = {}
+    for txn in transactions:
+        transaction_splits_data[str(txn.id)] = [
+            {'user_id': s.user.id, 'username': s.user.username, 'amount': s.amount}
+            for s in txn.splits.all()
+        ]
+
+    # Get all users except the owner (as a list of dicts)
+    all_users = User.objects.exclude(id=request.user.id).values('id', 'username')
+    all_users_list = list(all_users)   # already a list of dicts
+
 
     context['profile_owner'] = profile_owner
     context['transactions'] = transactions
+    context['current_user_id'] = request.user.id
+    context['current_user_name'] = request.user.username
+    context['transaction_splits_json'] = transaction_splits_data
+    context['all_users_json'] = all_users_list
+
     return render(request, 'account/account.html', context)
 
 
