@@ -2,6 +2,8 @@
 
 {% block content %}
 
+{% load static currency_filters %}
+
 {% load static %}
 
 <style>
@@ -84,13 +86,14 @@
         color: #fff;
         border: none;
         border-radius: 40px;
-        padding: 0.6rem 2rem;
+        padding: 0.5rem 1.5rem;          /* slightly smaller */
         font-weight: 600;
-        font-size: 0.85rem;
+        font-size: 0.8rem;               /* slightly smaller */
         text-transform: uppercase;
         letter-spacing: 0.5px;
         transition: 0.25s;
         text-decoration: none;
+        white-space: nowrap;              /* prevents wrapping */
     }
 
     .profile-info .edit-btn:hover {
@@ -473,7 +476,7 @@
                                                         {{ transaction.transaction_type }}
                                                     </span>
                                                 </td>
-                                                <td class="text-end">{{ transaction.transaction_ammount }}</td>
+                                                <td class="text-end">{{ transaction.transaction_ammount|isk_format }}</td>
                                                 <td class="text-center">
                                                     <select class="form-select form-select-sm split-type" data-txn-id="{{ transaction.id }}" style="width:auto; display:inline-block;">
                                                         <option value="me" {% if transaction.get_split_type == 'me' %}selected{% endif %}>Me</option>
@@ -503,7 +506,7 @@
                                                     <div class="split-editor" data-txn-id="{{ transaction.id }}">
                                                         <div class="row mb-2">
                                                             <div class="col-md-6">
-                                                                <strong>Total: {{ transaction.transaction_ammount }}</strong>
+                                                                <strong>Total: {{ transaction.transaction_ammount|isk_format }}</strong>
                                                             </div>
                                                             <div class="col-md-6 text-end">
                                                                 <span id="sum-display-{{ transaction.id }}" style="font-weight:bold;">Sum: 0</span>
@@ -591,17 +594,36 @@
             return cookieValue;
         }
 
-        // --- Helper: get transaction total from the DOM ---
+        // --- Helper: format number as ISK ---
+        function formatISK(value) {
+            const sign = value < 0 ? '-' : '';
+            const absVal = Math.abs(Math.round(value));
+            const formatted = absVal.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            return sign + formatted + ' kr.';
+        }
+
+        // --- Helper: get transaction total from the DOM (uses data-total) ---
         function getTransactionTotal(txnId) {
+            const editor = document.querySelector(`.split-editor[data-txn-id="${txnId}"]`);
+            if (editor && editor.dataset.total !== undefined) {
+                const total = parseInt(editor.dataset.total, 10);
+                if (!isNaN(total)) return total;
+            }
+            // fallback to old method
             const totalEl = document.querySelector('#split-editor-' + txnId + ' strong');
             if (totalEl) {
-                return parseFloat(totalEl.textContent.replace('Total: ', '')) || 0;
+                const raw = totalEl.textContent.replace('Total: ', '').trim();
+                // Remove thousands separators (dots) and currency suffix
+                const cleaned = raw.replace(/\./g, '').replace(/\s*kr\.?\s*/, '').trim();
+                return parseInt(cleaned, 10) || 0;
             }
             const row = document.getElementById('txn-' + txnId);
             if (row) {
                 const amountCell = row.querySelector('.text-end');
                 if (amountCell) {
-                    return parseFloat(amountCell.textContent.trim()) || 0;
+                    const raw = amountCell.textContent.trim();
+                    const cleaned = raw.replace(/\./g, '').replace(/\s*kr\.?\s*/, '').trim();
+                    return parseInt(cleaned, 10) || 0;
                 }
             }
             return 0;
@@ -623,11 +645,11 @@
             const others = otherSplits.map(s => {
                 const user = allUsers.find(u => u.id === s.user_id);
                 const name = user ? user.username : 'unknown';
-                return { name: name.slice(0,3), amount: s.amount };
+                return { name: name.slice(0,4), amount: s.amount };
             });
             others.sort((a,b) => a.name.localeCompare(b.name));
             items.push(...others);
-            const summaryText = items.map(item => `${item.name}: ${item.amount}`).join(' | ');
+            const summaryText = items.map(item => `${item.name}: ${formatISK(item.amount)}`).join(' | ');
             if (summaryRow) {
                 summaryRow.querySelector('span:last-child').textContent = summaryText;
             } else {
@@ -669,6 +691,8 @@
                 return Promise.reject('Invalid owner share');
             }
 
+            console.log('Sending splits for txn', txnId, ':', JSON.stringify({ splits: splits }));
+
             return fetch('/finance/api/update-splits/' + txnId + '/', {
                 method: 'POST',
                 headers: {
@@ -677,7 +701,15 @@
                 },
                 body: JSON.stringify({ splits: splits })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        console.error('Server error response:', text);
+                        throw new Error(text || 'Server error');
+                    });
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.status === 'ok') {
                     transactionSplits[txnId] = splits;
@@ -694,7 +726,8 @@
                 }
             })
             .catch(err => {
-                document.getElementById('split-errors-' + txnId).textContent = 'Network error.';
+                document.getElementById('split-errors-' + txnId).textContent = 'Error: ' + err.message;
+                console.error('Fetch error:', err);
                 return Promise.reject(err);
             });
         }
@@ -746,6 +779,19 @@
             return row;
         }
 
+        // --- Helper: parse multi-number expressions like "-125-200-1249" ---
+        function parseMultiNumber(value) {
+            const cleaned = value.replace(/\s/g, '');
+            const matches = cleaned.match(/[+-]?\d+/g);
+            if (!matches) return null;
+            let sum = 0;
+            for (let m of matches) {
+                const num = parseInt(m, 10);
+                if (!isNaN(num)) sum += num;
+            }
+            return sum;
+        }
+
         // --- Create a row for another user ---
         function createOtherRow(txnId, userId, username, amount) {
             const row = document.createElement('div');
@@ -765,14 +811,26 @@
                     </select>
                 </div>
                 <div class="col-md-4">
-                    <input type="number" class="form-control form-control-sm other-amount" data-txn-id="${txnId}" value="${amount}" step="1">
+                    <input type="text" class="form-control form-control-sm other-amount" data-txn-id="${txnId}" value="${amount}" placeholder="Enter amount(s)">
                 </div>
                 <div class="col-md-2">
                     <button class="btn btn-sm btn-danger remove-other-row" data-txn-id="${txnId}">×</button>
                 </div>
             `;
-            row.querySelector('.other-amount').addEventListener('input', function() {
+            const amountInput = row.querySelector('.other-amount');
+            // Live update
+            amountInput.addEventListener('input', function() {
                 updateOwnerShare(txnId);
+            });
+            // Parse multi-number on blur
+            amountInput.addEventListener('blur', function() {
+                const val = this.value.trim();
+                if (val === '') return;
+                const parsed = parseMultiNumber(val);
+                if (parsed !== null && parsed !== parseInt(val, 10)) {
+                    this.value = parsed;
+                    updateOwnerShare(txnId);
+                }
             });
             row.querySelector('.other-user-select').addEventListener('change', function() {
                 updateOwnerShare(txnId);
@@ -788,11 +846,22 @@
         function updateOwnerShare(txnId) {
             const container = document.getElementById('split-rows-' + txnId);
             if (!container) return;
+
             const otherRows = container.querySelectorAll('.other-row');
             let sumOthers = 0;
+
             otherRows.forEach(row => {
-                const amt = parseFloat(row.querySelector('.other-amount').value) || 0;
-                sumOthers += amt;
+                const val = row.querySelector('.other-amount').value.trim();
+                if (val === '') return;
+                // Use the multi‑number parser to sum all complete numbers
+                const parsed = parseMultiNumber(val);
+                if (parsed !== null) {
+                    sumOthers += parsed;
+                } else {
+                    // Fallback: try to parse as a plain integer
+                    const num = parseInt(val, 10);
+                    if (!isNaN(num)) sumOthers += num;
+                }
             });
 
             const total = getTransactionTotal(txnId);
@@ -911,13 +980,13 @@
                 document.getElementById('split-errors-' + txnId).textContent = 'Owner row missing.';
                 return;
             }
-            const ownerShare = parseFloat(ownerInput.value) || 0;
+            const ownerShare = parseInt(ownerInput.value, 10) || 0;
             const otherRows = container.querySelectorAll('.other-row');
             const splits = [];
             if (ownerShare !== 0) splits.push({ user_id: currentUserId, amount: ownerShare });
             otherRows.forEach(row => {
-                const userId = parseInt(row.querySelector('.other-user-select').value);
-                const amount = parseFloat(row.querySelector('.other-amount').value) || 0;
+                const userId = parseInt(row.querySelector('.other-user-select').value, 10);
+                const amount = parseInt(row.querySelector('.other-amount').value, 10) || 0;
                 if (userId && amount !== 0) splits.push({ user_id: userId, amount: amount });
             });
 

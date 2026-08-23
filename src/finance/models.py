@@ -80,6 +80,14 @@ class Transaction(models.Model):
         else:
             return 'split'
 
+    @staticmethod
+    def _format_isk(value):
+        """Format an integer as ISK currency string."""
+        sign = '-' if value < 0 else ''
+        abs_val = abs(int(value))
+        formatted = f"{abs_val:,}".replace(',', '.')
+        return f"{sign}{formatted} kr."
+
     def get_split_summary(self):
         """Return a string summary of the split, or None if only one split."""
         splits = self.splits.select_related('user').all()
@@ -92,8 +100,10 @@ class Transaction(models.Model):
             if split.user == current_user:
                 name = 'me'
             else:
-                name = split.user.username[:3] if len(split.user.username) >= 3 else split.user.username
-            items.append((name, split.amount))
+                # Use 4 characters (or full if shorter)
+                name = split.user.username[:4] if len(split.user.username) >= 4 else split.user.username
+            # Format the amount using the helper
+            items.append((name, self._format_isk(split.amount)))
 
         # Sort: 'me' first, then alphabetically by name
         items.sort(key=lambda x: (x[0] != 'me', x[0]))
