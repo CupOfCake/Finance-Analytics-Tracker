@@ -32,10 +32,22 @@ class MyAccountManager(BaseUserManager):
         return user
     
 
-
+# handle file upload location for profile images
+def profile_upload_location(instance: models.Model, filename: str) -> str:
+    if isinstance(instance, Account):
+        
+        file_path = 'account/{author_id}/{filename}-{filename}'.format(
+            author_id=str(instance.id), 
+            title=str(instance.username),
+            filename=filename
+        )
+        return file_path
+    else:
+        return 'account/{filename}'.format(filename=filename)
 
 class Account(AbstractBaseUser):
     email           = models.EmailField(verbose_name='email', max_length=60, unique=True)
+    profile_pic         = models.ImageField(upload_to=profile_upload_location, null=True, blank=True)
     username        = models.CharField(max_length=30, unique=True)
     date_joined     = models.DateTimeField(verbose_name='date joined', auto_now_add=True)
     last_login      = models.DateTimeField(verbose_name='last login', auto_now=True)

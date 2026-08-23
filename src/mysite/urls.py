@@ -29,6 +29,7 @@ from account.views import (
     logout_view,
     login_view,
     account_view,
+    account_update_view,
 )
 
 urlpatterns = [
@@ -38,6 +39,7 @@ urlpatterns = [
     path('logout/', logout_view, name='logout'),
     path('login/', login_view, name='login'),
     path('account/', account_view, name='account'),
+    path('account_update/', account_update_view, name='account_update'),
 
 
     # Password reset links (ref: https://github.com/django/django/blob/master/django/contrib/auth/views.py)

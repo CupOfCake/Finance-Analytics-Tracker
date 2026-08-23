@@ -2,36 +2,179 @@
 
 {% block content %}
 
-<h2>Login</h2>
-<form method="POST">
-    {% csrf_token %}
+{% load static %}
 
-    {% for field in account_form %}
-        <p>
-            {{field.label_tag}}<br>
-            {{field}}
+<style>
+    .account_container {
+        max-width: 1320px;
+        margin: 0 auto;
+    }
+    .listing-container {
+        background-color: #fff;
+        margin-bottom: 20px;
+        width: 100%
+    }
 
-             {% if field.help_text %}
-                <small style="color: grey;">{{ field.help_text }}</small>
-             {% endif %}
-        </p>
+    .account_info {
+        background-color: #fff;
+        margin-bottom: 20px;
+    }
+    
+    @media (max-width: 768px) {
+        .right-column{
+            margin-left: 0px;
+        }
+    }
 
-    {% endfor %}
-        {% for field in account_form %}
-            {% for error in field.errors %}
-                <p style="color: red;">{{ error }}</p>
+    @media (min-width: 768px) {
+        .right-column{
+            margin-left: 20px;
+        }
+        
+    }
+
+
+    .left-column {
+        padding: 0px;
+    }
+
+    .right-column {
+        padding: 0px;
+    }
+
+    @media (max-width: 767px) {
+    .account_info,
+    .listing-container {
+        padding-left: 30px;
+        padding-right: 30px;
+        }
+    }
+
+    /* Profile Picture */
+    .image_circle {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        overflow: hidden;
+        position: relative; 
+    }
+    .image_circle img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+    /* End Profile Picture */
+
+    /* Listing Styles */
+    .listing_container {
+        background-color: #f8f9fa; 
+        box-shadow: #d4dbe2 0 0 10px; 
+        padding: 12px;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .listing_container > a {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .listing_container > a > h4,
+    .listing_container > a > p {
+        margin-top: auto; 
+    }
+
+    .img-container {
+        width: 100%;
+        text-align: center;
+    }
+
+    .img-container img {
+        display: block;
+        margin: 0 auto;
+        max-width: 100%;
+        max-height: 300px;
+        height: auto;
+        object-fit: contain;
+    }
+
+    .text-wrapper {
+        margin-top: auto;   /* pushes this block to the bottom of the card */
+    }
+
+    .row.mt-3 > [class*="col-"] {
+        margin-bottom: 12px;
+    }
+    /* End Listing Styles */
+    
+</style>
+
+
+<div class="account_container">
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
             {% endfor %}
-        {% endfor %}
-
-        {% if account_form.non_field_errors %}
-            <div style="color: red;">
-                <p>{{ account_form.non_field_errors }}</p>git 
-            </div>
+        </ul>
     {% endif %}
+    <div class="row">
 
-    {{ form.as_p }}
+        <!-- Account info -->
+        <div class="left-column col-md-3 offset-md-1 col-lg-3 offset-lg-1">
+            <div class="account_info p-4">
+                <div class="flex-column align-items-center d-flex mb-4">
+
+                    <div class="image_circle">
+                        {% if profile_owner.profile_pic %}
+                            <img src="{{ profile_owner.profile_pic.url }}" alt="{{ profile_owner.username }}">
+                        {% else %}
+                            <img src="{% static 'DefaultPFP.png' %}" alt="{{ profile_owner.username }}">
+                        {% endif %}
+                    </div>
+                    
+                    <h3 class="mb-0">{{ profile_owner.username }}</h3>
+                </div>
+                    <p>account info</p>
+                    <div>
+                        {% if request.user == profile_owner %}
+                            <a href="{% url 'account_update' %}" class="update-account btn btn-outline-primary mb-2">Edit account info</a>
+                            <br>
+                        {% else %}
+                            <p>lalala</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User listings -->
+        <div class="right-column col-md-7 col-lg-7 d-md-flex flex-column">
+            <div class="listing-container p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <p>missing</p>
+                </div>
+
+                <!-- Display user's listings -->
+                <div class="row mt-3">
+                    <p>missing</p>
+                </div>
 
 
-    <button type="submit">Save changes</button>
+            </div>
+        </div>
+
+
+    </div>
+</div>
 
 {% endblock content %}

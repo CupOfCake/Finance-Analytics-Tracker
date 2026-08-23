@@ -66,6 +66,8 @@ def account_view(request):
     
     context = {}
 
+    profile_owner = request.user
+
     if request.POST:
         form = AccountUpdateForm(request.POST, instance=request.user)
         if form.is_valid():
@@ -77,8 +79,37 @@ def account_view(request):
                 'username': request.user.username,
             }
         )
-
-    context['account_form'] = form
+    context['profile_owner'] = profile_owner
     return render(request, 'account/account.html', context)
 
 
+
+
+def account_update_view(request):
+
+    if not request.user.is_authenticated:
+        return redirect('login')
+    
+    context: dict[str,object] = {}
+
+    if request.POST:
+        form = AccountUpdateForm(request.POST, request.FILES, instance=request.user)
+        if form.is_valid():
+            form.initial = {
+                'profile_pic': form.cleaned_data['profile_pic'],
+                'email': form.cleaned_data['email'],
+                'username': form.cleaned_data['username'],
+            }
+            form.save()
+            context['success_message'] = "Updated"
+
+    else: # GET request
+        form = AccountUpdateForm(
+            initial={
+                'email': request.user.email,
+                'username': request.user.username,
+            }
+        )
+
+    context['account_form'] = form
+    return render(request, 'account/account_update.html', context)
