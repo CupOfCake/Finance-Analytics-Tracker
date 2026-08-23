@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from operator import attrgetter
 from django.contrib.auth import login, authenticate, logout, get_user_model
 from account.forms import AccountAuthenticationForm, RegistrationForm, AccountUpdateForm
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from finance.models import Transaction, TransactionSplit
 from django.db.models import Sum, Prefetch
 from django.shortcuts import render
@@ -66,52 +67,109 @@ def login_view(request):
 
 
 
-def account_view(request):
 
+
+def account_view(request):
     if not request.user.is_authenticated:
         return redirect('login')
     
     context = {}
-
     profile_owner = request.user
 
-    transactions = (Transaction.objects
-                    .filter(user=request.user)
-                    .order_by('transaction_date') #db sort
-                    .prefetch_related(
-                        Prefetch('splits',
-                                 queryset=TransactionSplit.objects.select_related('user'))
-                    ))
+    # Base queryset
+    transactions_qs = Transaction.objects.filter(user=request.user).order_by('transaction_date')
 
-    # Build splits data (as a Python dict of lists)
+    # ---- Filters ----
+    year = request.GET.get('year')
+    month = request.GET.get('month')
+    if year and year.isdigit():
+        transactions_qs = transactions_qs.filter(transaction_date__year=year)
+    if month and month.isdigit():
+        transactions_qs = transactions_qs.filter(transaction_date__month=month)
+
+    # Prefetch splits
+    transactions_qs = transactions_qs.prefetch_related(
+        Prefetch('splits', queryset=TransactionSplit.objects.select_related('user'))
+    )
+
+    # ---- Pagination ----
+    paginator = Paginator(transactions_qs, 20)
+    page = request.GET.get('page')
+    try:
+        transactions_page = paginator.page(page)
+    except PageNotAnInteger:
+        transactions_page = paginator.page(1)
+    except EmptyPage:
+        transactions_page = paginator.page(paginator.num_pages)
+
+    # ---- Split data for current page ----
     transaction_splits_data = {}
-    for txn in transactions:
+    for txn in transactions_page:
         transaction_splits_data[str(txn.id)] = [
             {'user_id': s.user.id, 'username': s.user.username, 'amount': s.amount}
             for s in txn.splits.all()
         ]
 
-    # Get all users except the owner (as a list of dicts)
+    # ---- Global data ----
     all_users = User.objects.exclude(id=request.user.id).values('id', 'username')
-    all_users_list = list(all_users)   # already a list of dicts
-
+    all_users_list = list(all_users)
     upload_results = request.session.pop('upload_results', None)
     has_transactions = Transaction.objects.filter(user=profile_owner).exists()
 
+    # ---- Stats (filtered) ----
+    total_income = transactions_qs.filter(transaction_ammount__gt=0).aggregate(Sum('transaction_ammount'))['transaction_ammount__sum'] or 0
+    total_expense = transactions_qs.filter(transaction_ammount__lt=0).aggregate(Sum('transaction_ammount'))['transaction_ammount__sum'] or 0
+    net_balance = total_income + total_expense
+    transaction_count = transactions_qs.count()
+
+    # ---- Year choices for filter dropdown ----
+    available_years = Transaction.objects.filter(user=request.user).dates('transaction_date', 'year', order='DESC')
+    year_choices = [('', 'All years')] + [(str(year.year), str(year.year)) for year in available_years]
+
+    # ---- Month choices ----
+    month_choices = [
+        ('', 'All months'),
+        ('1', 'January'), ('2', 'February'), ('3', 'March'), ('4', 'April'),
+        ('5', 'May'), ('6', 'June'), ('7', 'July'), ('8', 'August'),
+        ('9', 'September'), ('10', 'October'), ('11', 'November'), ('12', 'December')
+    ]
+
+    # ---- Build base URL for pagination (preserve filters, remove only 'page') ----
+    get_params = request.GET.copy()
+    get_params.pop('page', None)        # remove page param
+    # remove pagination if it somehow exists, but we won't use it
+    get_params.pop('pagination', None)
+    base_url = get_params.urlencode()
+    if base_url:
+        base_url = '?' + base_url + '&'
+    else:
+        base_url = '?'
+
     partner = request.user.partner
-    context['partner_id'] = partner.id if partner else None
-    context['partner_username'] = partner.username if partner else None
-    context['profile_owner'] = profile_owner
-    context['transactions'] = transactions
-    context['current_user_id'] = request.user.id
-    context['current_user_name'] = request.user.username
-    context['transaction_splits_json'] = transaction_splits_data
-    context['all_users_json'] = all_users_list
-    context['has_transactions'] = has_transactions
-    context['upload_results'] = upload_results
+    context.update({
+        'partner_id': partner.id if partner else None,
+        'partner_username': partner.username if partner else None,
+        'profile_owner': profile_owner,
+        'transactions': transactions_page,
+        'page_obj': transactions_page,
+        'current_user_id': request.user.id,
+        'current_user_name': request.user.username,
+        'transaction_splits_json': transaction_splits_data,
+        'all_users_json': all_users_list,
+        'has_transactions': has_transactions,
+        'upload_results': upload_results,
+        'total_income': total_income,
+        'total_expense': abs(total_expense),
+        'net_balance': net_balance,
+        'transaction_count': transaction_count,
+        'selected_year': year,
+        'selected_month': month,
+        'year_choices': year_choices,
+        'month_choices': month_choices,
+        'base_url': base_url,
+    })
 
     return render(request, 'account/account.html', context)
-
 
 
 

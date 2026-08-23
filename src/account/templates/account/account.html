@@ -110,6 +110,7 @@
         align-items: center;
         color: #a0aec0;
         text-align: center;
+        padding: 1.5rem;
     }
 
     .profile-content .placeholder-icon {
@@ -353,6 +354,51 @@
         box-shadow: 0 6px 14px rgba(0, 128, 128, 0.3);
     }
 
+    /* ---- Custom pagination (compact, left-aligned, gray/teal) ---- */
+    .custom-pagination-nav {
+        margin-top: 1rem;
+    }
+    .custom-pagination {
+        display: flex;
+        flex-wrap: wrap;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        gap: 4px;
+        justify-content: flex-end;  /* right-align */
+    }
+    .custom-pagination li {
+        display: inline-block;
+    }
+    .custom-pagination li a,
+    .custom-pagination li span {
+        display: inline-block;
+        padding: 4px 12px;
+        background: #f0f2f5;
+        color: #4a5568;
+        border-radius: 30px;
+        text-decoration: none;
+        font-size: 0.8rem;
+        line-height: 1.5;
+        transition: background 0.2s;
+        border: none;
+    }
+    .custom-pagination li a:hover {
+        background: #e2e8f0;
+        color: #1e2a36;
+    }
+    .custom-pagination li.active span {
+        background: linear-gradient(135deg, #23adad 0%, #00555a 100%);
+        color: #fff;
+    }
+    .custom-pagination li.disabled span {
+        opacity: 0.5;
+        cursor: default;
+    }
+    .custom-pagination li a:focus {
+        outline: none;
+    }
+
 
     @media (max-width: 767px) {
         .profile-wrapper .row > [class*="col-"] {
@@ -442,24 +488,33 @@
                             </button>
                         </form>
                     {% else %}
-                        <!-- Data exists: show summary stats -->
-                        <div class="row text-center" style="width:100%;">
-                            <div class="col-md-4">
-                                <h3 style="color:#23adad;">{{ total_income|default:"0" }} kr.</h3>
-                                <p style="color:#a0aec0;">Total Income</p>
+                        <!-- Data exists: stats (left) + graph placeholder (right) -->
+                        <div style="display: flex; width: 100%; gap: 1.5rem; align-items: stretch; height: 100%;">
+                            <!-- Stats – left column -->
+                            <div style="flex: 0 0 auto; min-width: 140px; text-align: left; font-size: 0.9rem; line-height: 1.5; display: flex; flex-direction: column; justify-content: center; padding: 0.2rem 0;">
+                                <div>
+                                    <span style="color:#23adad; font-weight:600;">Total Income</span><br>
+                                    <span style="font-weight:500; font-size:1.2rem;">{{ total_income|default:"0"|isk_format }}</span>
+                                </div>
+                                <div>
+                                    <span style="color:#e74c3c; font-weight:600;">Total Expenses</span><br>
+                                    <span style="font-weight:500; font-size:1.2rem;">-{{ total_expense|default:"0"|isk_format }}</span>
+                                </div>
+                                <div>
+                                    <span style="color:#1e2a36; font-weight:600;">Net Balance</span><br>
+                                    <span style="font-weight:500; font-size:1.2rem;">{{ net_balance|default:"0"|isk_format }}</span>
+                                </div>
+                                <div style="margin-top: 0.5rem; color:#a0aec0; font-size:0.8rem; line-height:1.3;">
+                                    <div>{{ transaction_count }} transactions</div>
+                                    <div>loaded</div>
+                                </div>
                             </div>
-                            <div class="col-md-4">
-                                <h3 style="color:#e74c3c;">{{ total_expense|default:"0" }} kr.</h3>
-                                <p style="color:#a0aec0;">Total Expenses</p>
-                            </div>
-                            <div class="col-md-4">
-                                <h3 style="color:#1e2a36;">{{ net_balance|default:"0" }} kr.</h3>
-                                <p style="color:#a0aec0;">Net Balance</p>
+
+                            <!-- Graph placeholder – takes remaining width and full height -->
+                            <div style="flex: 1; background:#f0f2f5; border-radius:12px; display:flex; align-items:center; justify-content:center; color:#a0aec0; font-size:1rem; font-weight:300;">
+                                📈 Chart placeholder
                             </div>
                         </div>
-                        <p style="margin-top:0.5rem; color:#a0aec0; font-size:0.85rem;">
-                            {{ transaction_count }} transactions loaded.
-                        </p>
                     {% endif %}
                 </div>
             </div>
@@ -536,37 +591,25 @@
                         <!-- Transaction list -->
                         <div class="col-md-9 col-lg-10">
                             <!-- Toolbar: Search + Year/Month -->
-                            <div class="transaction-toolbar">
-                                <div class="search-box">
-                                    <input type="text" placeholder="Search transactions...">
+                            <form method="get" action="?" id="filter-form">
+                                <div class="transaction-toolbar">
+                                    <div class="search-box">
+                                        <input type="text" name="q" placeholder="Search transactions...">
+                                    </div>
+                                    <div class="date-filters">
+                                        <select name="year" id="year-filter" onchange="this.form.submit()">
+                                            {% for value, label in year_choices %}
+                                                <option value="{{ value }}" {% if value == selected_year %}selected{% endif %}>{{ label }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <select name="month" id="month-filter" onchange="this.form.submit()">
+                                            {% for value, label in month_choices %}
+                                                <option value="{{ value }}" {% if value == selected_month %}selected{% endif %}>{{ label }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
                                 </div>
-                                <div class="date-filters">
-                                    <select>
-                                        <option>All years</option>
-                                        <option>2025</option>
-                                        <option>2024</option>
-                                        <option>2023</option>
-                                        <option>2022</option>
-                                        <option>2021</option>
-                                        <option>2020</option>
-                                    </select>
-                                    <select>
-                                        <option>All months</option>
-                                        <option>January</option>
-                                        <option>February</option>
-                                        <option>March</option>
-                                        <option>April</option>
-                                        <option>May</option>
-                                        <option>June</option>
-                                        <option>July</option>
-                                        <option>August</option>
-                                        <option>September</option>
-                                        <option>October</option>
-                                        <option>November</option>
-                                        <option>December</option>
-                                    </select>
-                                </div>
-                            </div>
+                            </form>
 
                             <!-- Table -->
                             <div style="overflow-x: auto;">
@@ -647,10 +690,33 @@
                                         {% endfor %}
                                     </tbody>
                                 </table>
+                                <!-- Pagination -->
+                                {% if page_obj.has_other_pages %}
+                                    <nav aria-label="Transaction pagination" class="custom-pagination-nav" id="pagination-bottom">
+                                        <ul class="custom-pagination">
+                                            {% if page_obj.has_previous %}
+                                                <li><a href="{{ base_url }}page={{ page_obj.previous_page_number }}#pagination-bottom">‹</a></li>
+                                            {% else %}
+                                                <li class="disabled"><span>‹</span></li>
+                                            {% endif %}
+
+                                            {% for num in page_obj.paginator.page_range %}
+                                                {% if page_obj.number == num %}
+                                                    <li class="active"><span>{{ num }}</span></li>
+                                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                                    <li><a href="{{ base_url }}page={{ num }}#pagination-bottom">{{ num }}</a></li>
+                                                {% endif %}
+                                            {% endfor %}
+
+                                            {% if page_obj.has_next %}
+                                                <li><a href="{{ base_url }}page={{ page_obj.next_page_number }}#pagination-bottom">›</a></li>
+                                            {% else %}
+                                                <li class="disabled"><span>›</span></li>
+                                            {% endif %}
+                                        </ul>
+                                    </nav>
+                                {% endif %}
                             </div>
-                            <p style="margin-top: 1rem; color: #a0aec0; font-size: 0.85rem; text-align: center; font-style: italic;">
-                                Transaction data from your account — replace the filter placeholders with real logic.
-                            </p>
                         </div>
                     </div>
                 </div>
@@ -1140,6 +1206,7 @@
             }
         });
     }
+    
 </script>
 
 {% endblock content %}
