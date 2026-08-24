@@ -400,6 +400,33 @@
     }
 
 
+    #balanceChart {
+        width: 100% !important;
+        height: 100% !important;
+        display: block;
+    }
+
+    /* ---- Spinner for upload button ---- */
+    .spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 0.8s linear infinite;
+        vertical-align: middle;
+        margin-right: 6px;
+    }
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    .btn-loading {
+        opacity: 0.7;
+        cursor: not-allowed;
+    }
+
+
     @media (max-width: 767px) {
         .profile-wrapper .row > [class*="col-"] {
             margin-bottom: 20px;
@@ -437,6 +464,9 @@
         margin-top: 20px;
     }
 </style>
+
+<!-- load chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <section class="ftco-section">
     <div class="container profile-wrapper">
@@ -478,17 +508,17 @@
                         <div class="placeholder-icon">📊</div>
                         <h5>Financial Overview</h5>
                         <p>Upload your Arion credit card Excel file to import transactions.</p>
-                        <form method="post" enctype="multipart/form-data" action="{% url 'finance:upload_transactions' %}">
+                        <form method="post" enctype="multipart/form-data" action="{% url 'finance:upload_transactions' %}" id="main-upload-form">
                             {% csrf_token %}
                             <div class="form-group" style="margin-top: 0.5rem;">
                                 <input type="file" name="file" accept=".xlsx" class="form-control-file" required>
                             </div>
-                            <button type="submit" class="btn btn-primary" style="border-radius: 40px; background: linear-gradient(135deg, #23adad 0%, #00555a 100%); border: none; padding: 0.5rem 2rem; margin-top: 0.5rem;">
+                            <button type="submit" class="btn btn-primary" id="main-upload-btn" style="border-radius: 40px; background: linear-gradient(135deg, #23adad 0%, #00555a 100%); border: none; padding: 0.5rem 2rem; margin-top: 0.5rem;">
                                 Upload
                             </button>
                         </form>
                     {% else %}
-                        <!-- Data exists: stats (left) + graph placeholder (right) -->
+                        <!-- Data exists: stats (left) + graph (right) -->
                         <div style="display: flex; width: 100%; gap: 1.5rem; align-items: stretch; height: 100%;">
                             <!-- Stats – left column -->
                             <div style="flex: 0 0 auto; min-width: 140px; text-align: left; font-size: 0.9rem; line-height: 1.5; display: flex; flex-direction: column; justify-content: center; padding: 0.2rem 0;">
@@ -510,9 +540,15 @@
                                 </div>
                             </div>
 
-                            <!-- Graph placeholder – takes remaining width and full height -->
-                            <div style="flex: 1; background:#f0f2f5; border-radius:12px; display:flex; align-items:center; justify-content:center; color:#a0aec0; font-size:1rem; font-weight:300;">
-                                📈 Chart placeholder
+                            <!-- Graph – takes remaining width and full height -->
+                            <div style="flex: 1; background:#f0f2f5; border-radius:12px; padding:0.5rem; min-height:120px; position:relative;">
+                                {% if chart_data_json %}
+                                    <canvas id="balanceChart" style="position:absolute; top:0; left:0; width:100%; height:100%;"></canvas>
+                                {% else %}
+                                    <div style="display:flex; align-items:center; justify-content:center; color:#a0aec0; font-size:0.9rem; height:100%;">
+                                        No data for graph
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
                     {% endif %}
@@ -530,7 +566,7 @@
                             <div class="filter-section">
                                 {% if has_transactions %}
                                     <div class="upload-data-block" style="margin-bottom:0.2rem;">
-                                        <form method="post" enctype="multipart/form-data" action="{% url 'finance:upload_transactions' %}" class="upload-form-vertical">
+                                        <form method="post" enctype="multipart/form-data" action="{% url 'finance:upload_transactions' %}" class="upload-form-vertical" id="sidebar-upload-form">
                                             {% csrf_token %}
                                             <div class="upload-trigger">
                                                 <button type="button" class="btn-upload-trigger" onclick="document.getElementById('file-input-vertical').click();">+ Upload more data</button>
@@ -539,19 +575,19 @@
                                                 <span class="file-name-vertical file-placeholder" id="file-name-vertical">No file selected</span>
                                             </div>
                                             <div class="submit-wrapper" id="submit-wrapper-vertical" style="display:none; margin-top:0.3rem;">
-                                                <button type="submit" class="btn-upload-submit">Upload</button>
+                                                <button type="submit" class="btn-upload-submit" id="sidebar-upload-btn">Upload</button>
                                             </div>
                                             <input type="file" name="file" id="file-input-vertical" accept=".xlsx" style="display:none;">
                                         </form>
                                     </div>
                                 {% endif %}
 
-                                {% if upload_results %}
+                                <!-- {% if upload_results %}
                                     <div style="font-size:0.7rem; color:#4a5568; margin-top:0.2rem;">
                                         Added {{ upload_results.created }} transaction{{ upload_results.created|pluralize }}, <br>
                                         skipped {{ upload_results.skipped }} duplicate{{ upload_results.skipped|pluralize }}.
                                     </div>
-                                {% endif %}
+                                {% endif %} -->
 
                                 <h6 style="font-weight: 600; color: #1e2a36; margin-bottom:0.3rem;">Filters</h6>
 
@@ -1208,6 +1244,96 @@
             }
         });
     }
+
+    // ---- Upload button loading state ----
+    function handleUploadFormSubmit(form, btn) {
+        form.addEventListener('submit', function(e) {
+            // Only proceed if a file is selected
+            const fileInput = form.querySelector('input[type="file"]');
+            if (fileInput && fileInput.files.length === 0) {
+                e.preventDefault();
+                return;
+            }
+            // Disable button and show spinner
+            btn.disabled = true;
+            btn.classList.add('btn-loading');
+            btn.innerHTML = '<span class="spinner"></span> Uploading...';
+            // The form will submit normally; the page will reload after processing
+        });
+    }
+
+    // Main upload form
+    const mainForm = document.getElementById('main-upload-form');
+    const mainBtn = document.getElementById('main-upload-btn');
+    if (mainForm && mainBtn) {
+        handleUploadFormSubmit(mainForm, mainBtn);
+    }
+
+    // Sidebar upload form
+    const sidebarForm = document.getElementById('sidebar-upload-form');
+    const sidebarBtn = document.getElementById('sidebar-upload-btn');
+    if (sidebarForm && sidebarBtn) {
+        handleUploadFormSubmit(sidebarForm, sidebarBtn);
+    }
+
+
+
+    // chart.js chart
+    const chartData = JSON.parse('{{ chart_data_json|escapejs }}');
+    const ctx = document.getElementById('balanceChart').getContext('2d');
+
+    const colors = chartData.balances.map(b => b >= 0 ? '#23adad' : '#e74c3c');
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: chartData.labels,
+            datasets: [{
+                label: 'Net Balance',
+                data: chartData.balances,
+                borderColor: '#5c7070',
+                backgroundColor: 'rgba(35, 173, 173, 0.1)',
+                fill: true,
+                tension: 0.3,
+                pointBackgroundColor: chartData.balances.map(b => b >= 0 ? '#23adad' : '#e74c3c'),
+                pointBorderColor: '#fff',
+                pointBorderWidth: 1,
+                pointRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    grid: { color: '#e2e8f0' },
+                    ticks: { callback: function(value) { return value + ' kr'; } }
+                },
+                x: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+
+    // Auto-dismiss success messages after 3 seconds
+    document.addEventListener('DOMContentLoaded', function() {
+        const successMessages = document.querySelectorAll('.messages li.success');
+        if (successMessages.length) {
+            setTimeout(function() {
+                successMessages.forEach(function(el) {
+                    el.style.transition = 'opacity 0.5s ease';
+                    el.style.opacity = '0';
+                    setTimeout(function() {
+                        el.style.display = 'none';
+                    }, 500);
+                });
+            }, 3000); // 3 seconds
+        }
+    });
     
 </script>
 

@@ -8,6 +8,12 @@ from django.db.models import Sum, Prefetch
 from django.shortcuts import render
 import json
 from django.db.models import Q
+from django.db.models import Sum, Max
+from django.db.models.functions import TruncMonth
+from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
+
+
 
 User = get_user_model()
 
@@ -82,7 +88,7 @@ def account_view(request):
     profile_owner = request.user
 
     # Base queryset
-    transactions_qs = Transaction.objects.filter(user=request.user).order_by('transaction_date')
+    transactions_qs = Transaction.objects.filter(user=request.user).order_by('-transaction_date')
 
     # ---- Filters ----
     year = request.GET.get('year')
@@ -170,7 +176,60 @@ def account_view(request):
     else:
         base_url = '?'
 
+    # ---- Monthly balances for graph ----
+
+    # ---- Monthly balances (cumulative) for graph ----
+    monthly_balances = []
+    if transactions_qs.exists():
+        # Aggregate by month (non-cumulative)
+        monthly_agg = (transactions_qs
+                    .annotate(month=TruncMonth('transaction_date'))
+                    .values('month')
+                    .annotate(balance=Sum('transaction_ammount'))
+                    .order_by('month'))
+        # Compute cumulative balance
+        cumulative = 0
+        for item in monthly_agg:
+            cumulative += item['balance']
+            monthly_balances.append({
+                'month': item['month'].strftime('%b %Y'),
+                'balance': cumulative,
+            })
+
+
+    # monthly_balances = []
+    # if transactions_qs.exists():
+    #     # Get the latest transaction date from the filtered queryset
+    #     latest = transactions_qs.aggregate(Max('transaction_date'))['transaction_date__max']
+    #     if latest:
+    #         # Get the start date: 12 months back from latest (including latest month)
+    #         start_date = latest.replace(day=1) - relativedelta(months=11)
+    #         # Aggregate by month
+    #         monthly_agg = (transactions_qs
+    #                        .filter(transaction_date__gte=start_date)
+    #                        .annotate(month=TruncMonth('transaction_date'))
+    #                        .values('month')
+    #                        .annotate(balance=Sum('transaction_ammount'))
+    #                        .order_by('month'))
+    #         balance_dict = {item['month']: item['balance'] for item in monthly_agg}
+    #         # Build list of months from start_date to latest_date (inclusive)
+    #         current = start_date
+    #         while current <= latest.replace(day=1):
+    #             # If the month is in the dict, use that balance, else 0
+    #             balance = balance_dict.get(current, 0)
+    #             monthly_balances.append({
+    #                 'month': current.strftime('%b %Y'),
+    #                 'balance': balance,
+    #             })
+    #             current = current + relativedelta(months=1)
+
     partner = request.user.partner
+
+    chart_data = {
+        'labels': [item['month'] for item in monthly_balances],
+        'balances': [item['balance'] for item in monthly_balances],
+    }
+    
     context.update({
         'partner_id': partner.id if partner else None,
         'partner_username': partner.username if partner else None,
@@ -198,6 +257,7 @@ def account_view(request):
         'month_choices': month_choices,
         'base_url': base_url,
     })
+    context['chart_data_json'] = json.dumps(chart_data)
 
     return render(request, 'account/account.html', context)
 

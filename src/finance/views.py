@@ -68,59 +68,111 @@ def upload_transactions(request):
                 return redirect('account')
 
             try:
-                df = pd.read_excel(excel_file, engine='openpyxl')
-                required_cols = ['Dagsetning', 'Innlend upphæð', 'Lýsing', 'Heimildarnúmer']
-                if not all(col in df.columns for col in required_cols):
-                    messages.error(request, f'Invalid file format. Expected columns: {", ".join(required_cols)}')
-                    return redirect('account')
+                # Read the file without assuming header row first
+                # Try header=0 (credit card format)
+                df_credit = pd.read_excel(excel_file, engine='openpyxl', header=0)
+                credit_cols = ['Dagsetning', 'Innlend upphæð', 'Lýsing', 'Heimildarnúmer']
+                if all(col in df_credit.columns for col in credit_cols):
+                    # Credit card format
+                    df = df_credit
+                    parser = 'credit'
+                else:
+                    # Try header=3 (debit/account format)
+                    df_debit = pd.read_excel(excel_file, engine='openpyxl', header=3)
+                    debit_cols = ['Dagsetning', 'Upphæð', 'Skýring', 'Texti', 'Einkvæmur lykill', 'Nafn viðtakanda eða greiðanda']
+                    if all(col in df_debit.columns for col in debit_cols):
+                        df = df_debit
+                        parser = 'debit'
+                    else:
+                        messages.error(request, 'Unrecognized file format. Expected Arion credit card or debit/account export.')
+                        return redirect('account')
 
                 created_count = 0
                 skipped_count = 0
 
-                for _, row in df.iterrows():
-                    tID = row['Heimildarnúmer']
-                    if pd.isna(tID):
-                        continue
+                if parser == 'credit':
+                    for _, row in df.iterrows():
+                        tID = row['Heimildarnúmer']
+                        if pd.isna(tID):
+                            continue
+                        date_val = row['Dagsetning']
+                        if isinstance(date_val, pd.Timestamp):
+                            transaction_date = date_val.to_pydatetime()
+                        else:
+                            transaction_date = pd.to_datetime(date_val).to_pydatetime()
+                        transaction_date = make_aware(transaction_date)
 
-                    date_val = row['Dagsetning']
-                    if isinstance(date_val, pd.Timestamp):
-                        transaction_date = date_val.to_pydatetime()
-                    else:
-                        # fallback for string dates
-                        transaction_date = pd.to_datetime(date_val).to_pydatetime()
+                        amount = int(row['Innlend upphæð'])
+                        description = str(row['Lýsing'])
 
-                    # Make the datetime timezone-aware
-                    transaction_date = make_aware(transaction_date)
+                        if ' - ' in description:
+                            parts = description.rsplit(' - ', 1)
+                            transaction_type = parts[1].strip()
+                            transaction_name = parts[0].strip()
+                        else:
+                            transaction_type = 'Unknown'
+                            transaction_name = description
 
-                    amount = int(row['Innlend upphæð'])
-                    description = str(row['Lýsing'])
+                        try:
+                            Transaction.objects.create(
+                                user=request.user,
+                                transaction_id=int(tID),
+                                transaction_date=transaction_date,
+                                transaction_ammount=amount,
+                                transaction_name=transaction_name,
+                                transaction_type=transaction_type,
+                            )
+                            created_count += 1
+                        except IntegrityError:
+                            skipped_count += 1
 
-                    if ' - ' in description:
-                        parts = description.rsplit(' - ', 1)
-                        transaction_type = parts[1].strip()
-                        transaction_name = parts[0].strip()
-                    else:
-                        transaction_type = 'Unknown'
-                        transaction_name = description
+                else:  # debit
+                    username = request.user.username
+                    for _, row in df.iterrows():
+                        tID = row['Einkvæmur lykill']
+                        if pd.isna(tID):
+                            continue
 
-                    try:
-                        Transaction.objects.create(
-                            user=request.user,
-                            transaction_id=int(tID),
-                            transaction_date=transaction_date,
-                            transaction_ammount=amount,
-                            transaction_name=transaction_name,
-                            transaction_type=transaction_type,
-                        )
-                        created_count += 1
-                    except IntegrityError:
-                        skipped_count += 1
+                        date_val = row['Dagsetning']
+                        if isinstance(date_val, pd.Timestamp):
+                            transaction_date = date_val.to_pydatetime()
+                        else:
+                            transaction_date = pd.to_datetime(date_val).to_pydatetime()
+                        transaction_date = make_aware(transaction_date)
+
+                        amount = int(row['Upphæð'])
+                        description = str(row['Skýring']) if not pd.isna(row['Skýring']) else ''
+                        counterparty = str(row['Nafn viðtakanda eða greiðanda']) if not pd.isna(row['Nafn viðtakanda eða greiðanda']) else ''
+                        transaction_type = str(row['Texti']) if not pd.isna(row['Texti']) else ''
+
+                        # Skip if both description and counterparty contain the username
+                        if description and counterparty:
+                            if username.lower() in description.lower() and username.lower() in counterparty.lower():
+                                continue
+
+                        # Build transaction name
+                        if counterparty:
+                            transaction_name = f"{description} - {counterparty}" if description else counterparty
+                        else:
+                            transaction_name = description or 'Unknown'
+
+                        try:
+                            Transaction.objects.create(
+                                user=request.user,
+                                transaction_id=int(tID),
+                                transaction_date=transaction_date,
+                                transaction_ammount=amount,
+                                transaction_name=transaction_name,
+                                transaction_type=transaction_type,
+                            )
+                            created_count += 1
+                        except IntegrityError:
+                            skipped_count += 1
 
                 request.session['upload_results'] = {
                     'created': created_count,
                     'skipped': skipped_count
                 }
-
                 messages.success(
                     request,
                     f'Successfully added {created_count} transactions. '
