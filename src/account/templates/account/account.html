@@ -528,7 +528,6 @@
                         <!-- Filter sidebar -->
                         <div class="col-md-3 col-lg-2">
                             <div class="filter-section">
-
                                 {% if has_transactions %}
                                     <div class="upload-data-block" style="margin-bottom:0.2rem;">
                                         <form method="post" enctype="multipart/form-data" action="{% url 'finance:upload_transactions' %}" class="upload-form-vertical">
@@ -556,35 +555,38 @@
 
                                 <h6 style="font-weight: 600; color: #1e2a36; margin-bottom:0.3rem;">Filters</h6>
 
-                                <div class="filter-group">
-                                    <label>Category</label>
-                                    <select class="form-control-sm" style="width: 100%;">
-                                        <option>All categories</option>
-                                        <option>Food</option>
-                                        <option>Transport</option>
-                                        <option>Entertainment</option>
-                                        <option>Bills</option>
-                                    </select>
-                                </div>
-
-                                <div class="filter-group">
-                                    <label>Type</label>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="check-income" checked>
-                                        <label class="form-check-label" for="check-income">Income</label>
+                                <form method="get" action="?" id="filter-form">
+                                    <!-- Type checkboxes -->
+                                    <div class="filter-group">
+                                        <label>Type</label>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="income" id="check-income" value="on" {% if income_checked %}checked{% endif %}>
+                                            <label class="form-check-label" for="check-income">Income</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="expense" id="check-expense" value="on" {% if expense_checked %}checked{% endif %}>
+                                            <label class="form-check-label" for="check-expense">Expense</label>
+                                        </div>
                                     </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="check-expense" checked>
-                                        <label class="form-check-label" for="check-expense">Expense</label>
+
+                                    <!-- Amount range -->
+                                    <div class="filter-group">
+                                        <label>Amount</label>
+                                        <div style="display:flex; gap:0.5rem;">
+                                            <input type="text" name="amount_min" class="form-control-sm" placeholder="Min" value="{{ amount_min|default:'' }}" style="width:50%;">
+                                            <input type="text" name="amount_max" class="form-control-sm" placeholder="Max" value="{{ amount_max|default:'' }}" style="width:50%;">
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div class="filter-group">
-                                    <label>Amount</label>
-                                    <input type="text" class="form-control-sm" placeholder="Min – Max" style="width: 100%;">
-                                </div>
+                                    <!-- Hidden fields for other filters (year, month, search) so they persist -->
+                                    <input type="hidden" name="q" value="{{ search_query }}">
+                                    <input type="hidden" name="year" value="{{ selected_year|default:'' }}">
+                                    <input type="hidden" name="month" value="{{ selected_month|default:'' }}">
 
-                                <button class="btn btn-primary" style="width: 100%; border-radius: 40px; background: linear-gradient(135deg, #23adad 0%, #00555a 100%); border: none; height: 40px; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Apply filters</button>
+                                    <button type="submit" class="btn btn-primary" style="width: 100%; border-radius: 40px; background: linear-gradient(135deg, #23adad 0%, #00555a 100%); border: none; height: 40px; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Apply filters</button>
+                                    
+                                    <a href="?" class="btn btn-secondary" style="width:100%; border-radius:40px; height:40px; font-weight:600; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px; background:#e2e8f0; color:#4a5568; border:none; display:flex; align-items:center; justify-content:center; text-decoration:none; margin-top: 0.8rem;">Clear filters</a>
+                                </form>
                             </div>
                         </div>
 

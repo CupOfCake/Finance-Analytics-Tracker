@@ -72,6 +72,8 @@ def login_view(request):
 
 
 
+from django.db.models import Q
+
 def account_view(request):
     if not request.user.is_authenticated:
         return redirect('login')
@@ -86,6 +88,10 @@ def account_view(request):
     year = request.GET.get('year')
     month = request.GET.get('month')
     q = request.GET.get('q', '').strip()
+    income = request.GET.get('income')
+    expense = request.GET.get('expense')
+    amount_min = request.GET.get('amount_min')
+    amount_max = request.GET.get('amount_max')
 
     if year and year.isdigit():
         transactions_qs = transactions_qs.filter(transaction_date__year=year)
@@ -96,6 +102,17 @@ def account_view(request):
             Q(transaction_name__icontains=q) |
             Q(transaction_type__icontains=q)
         )
+    # Income/Expense filters
+    if income and not expense:
+        transactions_qs = transactions_qs.filter(transaction_ammount__gt=0)
+    elif expense and not income:
+        transactions_qs = transactions_qs.filter(transaction_ammount__lt=0)
+    
+    # Amount range
+    if amount_min and amount_min.lstrip('-').isdigit():
+        transactions_qs = transactions_qs.filter(transaction_ammount__gte=int(amount_min))
+    if amount_max and amount_max.lstrip('-').isdigit():
+        transactions_qs = transactions_qs.filter(transaction_ammount__lte=int(amount_max))
 
     # Prefetch splits
     transactions_qs = transactions_qs.prefetch_related(
@@ -172,9 +189,13 @@ def account_view(request):
         'transaction_count': transaction_count,
         'selected_year': year,
         'selected_month': month,
+        'search_query': q,
+        'income_checked': income == 'on',
+        'expense_checked': expense == 'on',
+        'amount_min': amount_min,
+        'amount_max': amount_max,
         'year_choices': year_choices,
         'month_choices': month_choices,
-        'search_query': q,
         'base_url': base_url,
     })
 
