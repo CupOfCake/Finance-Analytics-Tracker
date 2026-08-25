@@ -12,7 +12,7 @@ from django.db.models import Sum, Max
 from django.db.models.functions import TruncMonth
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
-
+from django.db.models.functions import TruncMonth, TruncDay
 
 
 User = get_user_model()
@@ -176,59 +176,68 @@ def account_view(request):
     else:
         base_url = '?'
 
-    # ---- Monthly balances for graph ----
 
-    # ---- Monthly balances (cumulative) for graph ----
-    monthly_balances = []
-    if transactions_qs.exists():
-        # Aggregate by month (non-cumulative)
-        monthly_agg = (transactions_qs
+    # ---- Chart data ----
+    # 1. Compute cumulative monthly balances from ALL transactions (unfiltered)
+    all_transactions_qs = Transaction.objects.filter(user=request.user).order_by('transaction_date')
+    monthly_agg_all = (all_transactions_qs
                     .annotate(month=TruncMonth('transaction_date'))
                     .values('month')
                     .annotate(balance=Sum('transaction_ammount'))
                     .order_by('month'))
-        # Compute cumulative balance
-        cumulative = 0
-        for item in monthly_agg:
-            cumulative += item['balance']
-            monthly_balances.append({
-                'month': item['month'].strftime('%b %Y'),
-                'balance': cumulative,
-            })
 
+    cumulative = 0
+    all_monthly_cumulative = []
+    for item in monthly_agg_all:
+        cumulative += item['balance']
+        all_monthly_cumulative.append({
+            'month': item['month'],
+            'cumulative': cumulative,
+        })
 
+    # 2. Decide chart data based on filters
+    chart_data = {'labels': [], 'balances': []}
+
+    # Check if a specific month is selected
+    month_selected = month and month.isdigit()
+
+    if month_selected:
+        # Show daily net balances for that month (from filtered queryset)
+        daily_agg = (transactions_qs
+                    .annotate(day=TruncDay('transaction_date'))
+                    .values('day')
+                    .annotate(net=Sum('transaction_ammount'))
+                    .order_by('day'))
+        chart_data['labels'] = [item['day'].strftime('%b %d') for item in daily_agg]
+        chart_data['balances'] = [item['net'] for item in daily_agg]
+    else:
+        # Show cumulative monthly balances (filtered by year if selected)
+        filtered_months = all_monthly_cumulative
+        if year and year.isdigit():
+            filtered_months = [m for m in all_monthly_cumulative if m['month'].year == int(year)]
+        chart_data['labels'] = [m['month'].strftime('%b %Y') for m in filtered_months]
+        chart_data['balances'] = [m['cumulative'] for m in filtered_months]
+
+    # # ---- Monthly balances (cumulative) for graph ----
     # monthly_balances = []
     # if transactions_qs.exists():
-    #     # Get the latest transaction date from the filtered queryset
-    #     latest = transactions_qs.aggregate(Max('transaction_date'))['transaction_date__max']
-    #     if latest:
-    #         # Get the start date: 12 months back from latest (including latest month)
-    #         start_date = latest.replace(day=1) - relativedelta(months=11)
-    #         # Aggregate by month
-    #         monthly_agg = (transactions_qs
-    #                        .filter(transaction_date__gte=start_date)
-    #                        .annotate(month=TruncMonth('transaction_date'))
-    #                        .values('month')
-    #                        .annotate(balance=Sum('transaction_ammount'))
-    #                        .order_by('month'))
-    #         balance_dict = {item['month']: item['balance'] for item in monthly_agg}
-    #         # Build list of months from start_date to latest_date (inclusive)
-    #         current = start_date
-    #         while current <= latest.replace(day=1):
-    #             # If the month is in the dict, use that balance, else 0
-    #             balance = balance_dict.get(current, 0)
-    #             monthly_balances.append({
-    #                 'month': current.strftime('%b %Y'),
-    #                 'balance': balance,
-    #             })
-    #             current = current + relativedelta(months=1)
+    #     # Aggregate by month (non-cumulative)
+    #     monthly_agg = (transactions_qs
+    #                 .annotate(month=TruncMonth('transaction_date'))
+    #                 .values('month')
+    #                 .annotate(balance=Sum('transaction_ammount'))
+    #                 .order_by('month'))
+    #     # Compute cumulative balance
+    #     cumulative = 0
+    #     for item in monthly_agg:
+    #         cumulative += item['balance']
+    #         monthly_balances.append({
+    #             'month': item['month'].strftime('%b %Y'),
+    #             'balance': cumulative,
+    #         })
+
 
     partner = request.user.partner
-
-    chart_data = {
-        'labels': [item['month'] for item in monthly_balances],
-        'balances': [item['balance'] for item in monthly_balances],
-    }
     
     context.update({
         'partner_id': partner.id if partner else None,

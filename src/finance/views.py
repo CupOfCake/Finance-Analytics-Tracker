@@ -93,8 +93,17 @@ def upload_transactions(request):
                 if parser == 'credit':
                     for _, row in df.iterrows():
                         tID = row['Heimildarnúmer']
+                        description = str(row['Lýsing']) if not pd.isna(row['Lýsing']) else ''
+
+                        # Special handling for Útskriftargjald (statement fee)
+                        if pd.isna(tID) and 'Útskriftargjald' in description:
+                            # Use a dummy transaction_id (e.g., -1)
+                            # To avoid conflicts if multiple such fees on the same date, we can use -1 - month? but date is different, so -1 is fine.
+                            tID = -1
+
                         if pd.isna(tID):
-                            continue
+                            continue  # skip other rows without a valid ID
+
                         date_val = row['Dagsetning']
                         if isinstance(date_val, pd.Timestamp):
                             transaction_date = date_val.to_pydatetime()
@@ -103,7 +112,6 @@ def upload_transactions(request):
                         transaction_date = make_aware(transaction_date)
 
                         amount = int(row['Innlend upphæð'])
-                        description = str(row['Lýsing'])
 
                         if ' - ' in description:
                             parts = description.rsplit(' - ', 1)
@@ -144,6 +152,10 @@ def upload_transactions(request):
                         description = str(row['Skýring']) if not pd.isna(row['Skýring']) else ''
                         counterparty = str(row['Nafn viðtakanda eða greiðanda']) if not pd.isna(row['Nafn viðtakanda eða greiðanda']) else ''
                         transaction_type = str(row['Texti']) if not pd.isna(row['Texti']) else ''
+
+                        # Skip if "Arion banki hf." appears in description or counterparty
+                        if 'arion banki hf.' in description.lower() or 'arion banki hf.' in counterparty.lower():
+                            continue
 
                         # Skip if both description and counterparty contain the username
                         if description and counterparty:
