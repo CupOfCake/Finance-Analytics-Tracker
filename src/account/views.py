@@ -208,8 +208,19 @@ def account_view(request):
                     .values('day')
                     .annotate(net=Sum('transaction_ammount'))
                     .order_by('day'))
-        chart_data['labels'] = [item['day'].strftime('%b %d') for item in daily_agg]
-        chart_data['balances'] = [item['net'] for item in daily_agg]
+
+        # Compute cumulative daily balance so the cart shows the running total for that month
+        day_cumulative = 0
+        daily_agg_cumulative = []
+        for item in daily_agg:
+            day_cumulative += item['net']
+            daily_agg_cumulative.append({
+                'day': item['day'],
+                'cumulative': day_cumulative,
+            })
+
+        chart_data['labels'] = [item['day'].strftime('%b %d') for item in daily_agg_cumulative]
+        chart_data['balances'] = [item['cumulative'] for item in daily_agg_cumulative]
     else:
         # Show cumulative monthly balances (filtered by year if selected)
         filtered_months = all_monthly_cumulative
