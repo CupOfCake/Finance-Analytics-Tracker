@@ -99,6 +99,15 @@ def account_view(request):
     amount_min = request.GET.get('amount_min')
     amount_max = request.GET.get('amount_max')
 
+    # ---- Auto-select latest year if only month is selected ----
+    if month and month.isdigit() and not year:
+        latest_year = Transaction.objects.filter(
+            user=request.user,
+            transaction_date__month=int(month)
+        ).dates('transaction_date', 'year', order='DESC').first()
+        if latest_year:
+            year = str(latest_year.year)
+
     if year and year.isdigit():
         transactions_qs = transactions_qs.filter(transaction_date__year=year)
     if month and month.isdigit():
@@ -178,56 +187,45 @@ def account_view(request):
 
 
     # ---- Chart data ----
-    # 1. Compute cumulative monthly balances from ALL transactions (unfiltered)
-    all_transactions_qs = Transaction.objects.filter(user=request.user).order_by('transaction_date')
-    monthly_agg_all = (all_transactions_qs
-                    .annotate(month=TruncMonth('transaction_date'))
-                    .values('month')
-                    .annotate(balance=Sum('transaction_ammount'))
-                    .order_by('month'))
-
-    cumulative = 0
-    all_monthly_cumulative = []
-    for item in monthly_agg_all:
-        cumulative += item['balance']
-        all_monthly_cumulative.append({
-            'month': item['month'],
-            'cumulative': cumulative,
-        })
-
-    # 2. Decide chart data based on filters
     chart_data = {'labels': [], 'balances': []}
 
-    # Check if a specific month is selected
     month_selected = month and month.isdigit()
 
     if month_selected:
-        # Show daily net balances for that month (from filtered queryset)
+        # Daily cumulative view: uses filtered queryset (already has month, search, etc.)
         daily_agg = (transactions_qs
                     .annotate(day=TruncDay('transaction_date'))
                     .values('day')
                     .annotate(net=Sum('transaction_ammount'))
                     .order_by('day'))
-
-        # Compute cumulative daily balance so the cart shows the running total for that month
-        day_cumulative = 0
+        daily_cumulative = 0
         daily_agg_cumulative = []
         for item in daily_agg:
-            day_cumulative += item['net']
+            daily_cumulative += item['net']
             daily_agg_cumulative.append({
                 'day': item['day'],
-                'cumulative': day_cumulative,
+                'cumulative': daily_cumulative,
             })
-
         chart_data['labels'] = [item['day'].strftime('%b %d') for item in daily_agg_cumulative]
         chart_data['balances'] = [item['cumulative'] for item in daily_agg_cumulative]
     else:
-        # Show cumulative monthly balances (filtered by year if selected)
-        filtered_months = all_monthly_cumulative
-        if year and year.isdigit():
-            filtered_months = [m for m in all_monthly_cumulative if m['month'].year == int(year)]
-        chart_data['labels'] = [m['month'].strftime('%b %Y') for m in filtered_months]
-        chart_data['balances'] = [m['cumulative'] for m in filtered_months]
+        # Monthly cumulative view: uses the filtered queryset (search, income/expense, amount, year if any)
+        # Aggregate by month from the filtered queryset
+        monthly_agg = (transactions_qs
+                    .annotate(month=TruncMonth('transaction_date'))
+                    .values('month')
+                    .annotate(balance=Sum('transaction_ammount'))
+                    .order_by('month'))
+        cumulative = 0
+        filtered_cumulative = []
+        for item in monthly_agg:
+            cumulative += item['balance']
+            filtered_cumulative.append({
+                'month': item['month'],
+                'cumulative': cumulative,
+            })
+        chart_data['labels'] = [m['month'].strftime('%b %Y') for m in filtered_cumulative]
+        chart_data['balances'] = [m['cumulative'] for m in filtered_cumulative]
 
     # # ---- Monthly balances (cumulative) for graph ----
     # monthly_balances = []
