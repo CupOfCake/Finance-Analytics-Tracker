@@ -186,46 +186,97 @@ def account_view(request):
         base_url = '?'
 
 
-    # ---- Chart data ----
+   # ---- Chart data ----
     chart_data = {'labels': [], 'balances': []}
 
     month_selected = month and month.isdigit()
 
     if month_selected:
-        # Daily cumulative view: uses filtered queryset (already has month, search, etc.)
-        daily_agg = (transactions_qs
-                    .annotate(day=TruncDay('transaction_date'))
-                    .values('day')
-                    .annotate(net=Sum('transaction_ammount'))
-                    .order_by('day'))
-        daily_cumulative = 0
-        daily_agg_cumulative = []
-        for item in daily_agg:
-            daily_cumulative += item['net']
-            daily_agg_cumulative.append({
-                'day': item['day'],
-                'cumulative': daily_cumulative,
-            })
-        chart_data['labels'] = [item['day'].strftime('%b %d') for item in daily_agg_cumulative]
-        chart_data['balances'] = [item['cumulative'] for item in daily_agg_cumulative]
+        # Selected month and (possibly auto-selected) year
+        selected_year = int(year) if year and year.isdigit() else None
+        selected_month = int(month)
+        if selected_year and selected_month:
+            start_of_month = datetime(selected_year, selected_month, 1)
+
+            # Build queryset with all filters EXCEPT month (and year)
+            base_qs = Transaction.objects.filter(user=request.user)
+            if q:
+                base_qs = base_qs.filter(
+                    Q(transaction_name__icontains=q) |
+                    Q(transaction_type__icontains=q)
+                )
+            if income and not expense:
+                base_qs = base_qs.filter(transaction_ammount__gt=0)
+            elif expense and not income:
+                base_qs = base_qs.filter(transaction_ammount__lt=0)
+            if amount_min and amount_min.lstrip('-').isdigit():
+                base_qs = base_qs.filter(transaction_ammount__gte=int(amount_min))
+            if amount_max and amount_max.lstrip('-').isdigit():
+                base_qs = base_qs.filter(transaction_ammount__lte=int(amount_max))
+
+            # Cumulative balance BEFORE the selected month
+            prior_qs = base_qs.filter(transaction_date__lt=start_of_month)
+            starting_balance = prior_qs.aggregate(sum=Sum('transaction_ammount'))['sum'] or 0
+
+            # Daily net balances for the selected month (from filtered queryset)
+            daily_agg = (transactions_qs
+                        .annotate(day=TruncDay('transaction_date'))
+                        .values('day')
+                        .annotate(net=Sum('transaction_ammount'))
+                        .order_by('day'))
+            cumulative = starting_balance
+            daily_agg_cumulative = []
+            for item in daily_agg:
+                cumulative += item['net']
+                daily_agg_cumulative.append({
+                    'day': item['day'],
+                    'cumulative': cumulative,
+                })
+            chart_data['labels'] = [item['day'].strftime('%b %d') for item in daily_agg_cumulative]
+            chart_data['balances'] = [item['cumulative'] for item in daily_agg_cumulative]
+        else:
+            # Fallback – should not happen
+            chart_data = {'labels': [], 'balances': []}
+
     else:
-        # Monthly cumulative view: uses the filtered queryset (search, income/expense, amount, year if any)
-        # Aggregate by month from the filtered queryset
-        monthly_agg = (transactions_qs
+        # Monthly cumulative view (year selected or all years)
+        # Build base queryset with all filters EXCEPT year and month
+        base_qs = Transaction.objects.filter(user=request.user)
+        if q:
+            base_qs = base_qs.filter(
+                Q(transaction_name__icontains=q) |
+                Q(transaction_type__icontains=q)
+            )
+        if income and not expense:
+            base_qs = base_qs.filter(transaction_ammount__gt=0)
+        elif expense and not income:
+            base_qs = base_qs.filter(transaction_ammount__lt=0)
+        if amount_min and amount_min.lstrip('-').isdigit():
+            base_qs = base_qs.filter(transaction_ammount__gte=int(amount_min))
+        if amount_max and amount_max.lstrip('-').isdigit():
+            base_qs = base_qs.filter(transaction_ammount__lte=int(amount_max))
+
+        monthly_agg = (base_qs
                     .annotate(month=TruncMonth('transaction_date'))
                     .values('month')
-                    .annotate(balance=Sum('transaction_ammount'))
+                    .annotate(net=Sum('transaction_ammount'))
                     .order_by('month'))
+
         cumulative = 0
-        filtered_cumulative = []
+        full_cumulative = []
         for item in monthly_agg:
-            cumulative += item['balance']
-            filtered_cumulative.append({
+            cumulative += item['net']
+            full_cumulative.append({
                 'month': item['month'],
                 'cumulative': cumulative,
             })
-        chart_data['labels'] = [m['month'].strftime('%b %Y') for m in filtered_cumulative]
-        chart_data['balances'] = [m['cumulative'] for m in filtered_cumulative]
+
+        # Filter by year if selected
+        if year and year.isdigit():
+            full_cumulative = [m for m in full_cumulative if m['month'].year == int(year)]
+
+        chart_data['labels'] = [m['month'].strftime('%b %Y') for m in full_cumulative]
+        chart_data['balances'] = [m['cumulative'] for m in full_cumulative]
 
     # # ---- Monthly balances (cumulative) for graph ----
     # monthly_balances = []

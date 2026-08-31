@@ -1333,7 +1333,17 @@
     const chartData = JSON.parse('{{ chart_data_json|escapejs }}');
     const ctx = document.getElementById('balanceChart').getContext('2d');
 
-    const colors = chartData.balances.map(b => b >= 0 ? '#23adad' : '#e74c3c');
+    // Determine point colors and segment colors
+    const balances = chartData.balances;
+    const pointColors = balances.map((b, i) => {
+        if (i === 0) {
+            return b >= 0 ? '#23adad' : '#e74c3c';
+        }
+        return b >= balances[i-1] ? '#23adad' : '#e74c3c';
+    });
+
+    // We'll use segment.borderColor function to color line segments
+    // It will be applied in the dataset.
 
     new Chart(ctx, {
         type: 'line',
@@ -1341,15 +1351,27 @@
             labels: chartData.labels,
             datasets: [{
                 label: 'Net Balance',
-                data: chartData.balances,
-                borderColor: '#5c7070',
+                data: balances,
+                borderColor: '#5c7070', // default fallback
                 backgroundColor: 'rgba(35, 173, 173, 0.1)',
                 fill: true,
-                tension: 0,  // straight lines
-                pointBackgroundColor: chartData.balances.map(b => b >= 0 ? '#23adad' : '#e74c3c'),
+                tension: 0,
+                pointBackgroundColor: pointColors,
                 pointBorderColor: '#fff',
                 pointBorderWidth: 1,
                 pointRadius: 4,
+                segment: {
+                    borderColor: (ctx) => {
+                        const p0 = ctx.p0;
+                        const p1 = ctx.p1;
+                        if (p0 && p1) {
+                            const value0 = p0.parsed.y;
+                            const value1 = p1.parsed.y;
+                            return value1 >= value0 ? '#23adad' : '#e74c3c';
+                        }
+                        return '#5c7070';
+                    }
+                }
             }]
         },
         options: {
@@ -1369,23 +1391,7 @@
             }
         }
     });
-
-    // Auto-dismiss success messages after 3 seconds
-    document.addEventListener('DOMContentLoaded', function() {
-        const successMessages = document.querySelectorAll('.messages li.success');
-        if (successMessages.length) {
-            setTimeout(function() {
-                successMessages.forEach(function(el) {
-                    el.style.transition = 'opacity 0.5s ease';
-                    el.style.opacity = '0';
-                    setTimeout(function() {
-                        el.style.display = 'none';
-                    }, 500);
-                });
-            }, 3000); // 3 seconds
-        }
-    });
-    
+        
 </script>
 
 {% endblock content %}
