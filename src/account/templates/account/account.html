@@ -642,6 +642,26 @@
                                     
                                     <a href="?" class="btn btn-secondary" style="width:100%; border-radius:40px; height:40px; font-weight:600; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px; background:#e2e8f0; color:#4a5568; border:none; display:flex; align-items:center; justify-content:center; text-decoration:none; margin-top: 0.8rem;">Clear filters</a>
                                 </form>
+                                
+                                                                <!-- Delete All form – separate from filter form -->
+                                <form method="post" action="{% url 'finance:delete_filtered_transactions' %}" id="delete-all-form">
+                                    {% csrf_token %}
+                                    <!-- Hidden inputs to pass current filter values -->
+                                    <input type="hidden" name="year" value="{{ selected_year|default:'' }}">
+                                    <input type="hidden" name="month" value="{{ selected_month|default:'' }}">
+                                    <input type="hidden" name="q" value="{{ search_query }}">
+                                    <input type="hidden" name="income" value="{% if income_checked %}on{% else %}{% endif %}">
+                                    <input type="hidden" name="expense" value="{% if expense_checked %}on{% else %}{% endif %}">
+                                    <input type="hidden" name="amount_min" value="{{ amount_min|default:'' }}">
+                                    <input type="hidden" name="amount_max" value="{{ amount_max|default:'' }}">
+                                    
+                                    <button type="submit" 
+                                            class="btn btn-danger" 
+                                            style="width:100%; border-radius:40px; height:40px; font-weight:600; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px; background:#e74c3c; color:#fff; border:none; margin-top: 0.5rem;"
+                                            onclick="return confirm('Are you sure you want to delete ALL transactions matching the current filters? This cannot be undone.');">
+                                        Delete All
+                                    </button>
+                                </form>
                             </div>
                         </div>
 

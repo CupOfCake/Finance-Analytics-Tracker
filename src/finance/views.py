@@ -15,6 +15,8 @@ from django.contrib.auth.decorators import login_required
 from .models import Transaction, TransactionSplit
 from django.contrib.auth import get_user_model
 
+from django.db.models import Q
+
 User = get_user_model()
 
 @login_required
@@ -214,4 +216,53 @@ def delete_transaction(request, transaction_pk,):
     else:
         messages.error(request, 'Invalid request method.')
 
+    return redirect('account')
+
+
+@login_required
+def delete_filtered_transactions(request):
+    if request.method != 'POST':
+        messages.error(request, 'Invalid request method.')
+        return redirect('account')
+    
+    # Get filters from POST (same as GET parameters)
+    year = request.POST.get('year')
+    month = request.POST.get('month')
+    q = request.POST.get('q', '').strip()
+    income = request.POST.get('income')
+    expense = request.POST.get('expense')
+    amount_min = request.POST.get('amount_min')
+    amount_max = request.POST.get('amount_max')
+    
+    # Build queryset with same filters as account_view
+    transactions_qs = Transaction.objects.filter(user=request.user)
+    
+    if year and year.isdigit():
+        transactions_qs = transactions_qs.filter(transaction_date__year=year)
+    if month and month.isdigit():
+        transactions_qs = transactions_qs.filter(transaction_date__month=month)
+    if q:
+        transactions_qs = transactions_qs.filter(
+            Q(transaction_name__icontains=q) |
+            Q(transaction_type__icontains=q)
+        )
+    if income and not expense:
+        transactions_qs = transactions_qs.filter(transaction_ammount__gt=0)
+    elif expense and not income:
+        transactions_qs = transactions_qs.filter(transaction_ammount__lt=0)
+    if amount_min and amount_min.lstrip('-').isdigit():
+        transactions_qs = transactions_qs.filter(transaction_ammount__gte=int(amount_min))
+    if amount_max and amount_max.lstrip('-').isdigit():
+        transactions_qs = transactions_qs.filter(transaction_ammount__lte=int(amount_max))
+    
+    count = transactions_qs.count()
+    
+    if count == 0:
+        messages.warning(request, 'No transactions found matching the current filters.')
+        return redirect('account')
+    
+    # Delete all matching transactions
+    transactions_qs.delete()
+    
+    messages.success(request, f'Successfully deleted {count} transaction{"s" if count != 1 else ""}.')
     return redirect('account')
