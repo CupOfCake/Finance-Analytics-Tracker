@@ -706,10 +706,10 @@
                                             <!-- Main row -->
                                             <tr id="txn-{{ transaction.id }}">
                                                 <td>{{ transaction.transaction_date|date:"Y-m-d" }}</td>
-                                                <td>{{ transaction.transaction_name }}</td>
+                                                <td>{{ transaction.transaction_name|clean_description }}</td>
                                                 <td>
                                                     <span class="badge-category {% if transaction.transaction_type|lower == 'income' %}income{% elif transaction.transaction_type|lower == 'expense' %}expense{% endif %}">
-                                                        {{ transaction.transaction_type }}
+                                                        {{ transaction.transaction_type|slice:":14" }}{% if transaction.transaction_type|length > 14 %}-{% endif %}
                                                     </span>
                                                 </td>
                                                 <td class="text-end">{{ transaction.transaction_ammount|isk_format }}</td>
