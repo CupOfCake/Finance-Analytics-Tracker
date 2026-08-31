@@ -200,3 +200,18 @@ def upload_transactions(request):
         return redirect('account')
 
     return redirect('account')
+
+
+@login_required
+def delete_transaction(request, transaction_pk,):
+    if request.method == 'POST':
+        try:
+            transaction = Transaction.objects.get(pk=transaction_pk, user=request.user)
+            transaction.delete()
+            messages.success(request, 'Transaction deleted successfully.')
+        except Transaction.DoesNotExist:
+            messages.error(request, 'Transaction not found.')
+    else:
+        messages.error(request, 'Invalid request method.')
+
+    return redirect('account')
