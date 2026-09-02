@@ -1,17 +1,491 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Home - Finance Tracker{% endblock title %}
 
 {% block content %}
 
-<div class="pricing-header px-3 py-3 pt-md-5 pb-md-4 mx-auto text-center">
-    <h1 class="display-4">Finance Tracker</h1>
-    <p class="lead">Temp-placeholder text</p>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+    body {
+        font-family: 'Poppins', sans-serif;
+        background: #f8f9fa;
+        color: #1e2a36;
+    }
+
+    /* ----- Masthead (Hero) ----- */
+    .masthead {
+        background: linear-gradient(135deg, #23adad 0%, #00555a 100%);
+        padding: 7rem 0 5rem;
+        color: #fff;
+        text-align: center;
+        margin-bottom: 0;
+    }
+
+    .masthead .masthead-subheading {
+        font-size: 1.25rem;
+        font-weight: 300;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        opacity: 0.9;
+        margin-bottom: 0.75rem;
+    }
+
+    .masthead .masthead-heading {
+        font-size: 3.5rem;
+        font-weight: 700;
+        line-height: 1.2;
+        margin-bottom: 1rem;
+    }
+
+    .masthead .masthead-text {
+        font-size: 1.2rem;
+        max-width: 600px;
+        margin: 0 auto 2rem;
+        opacity: 0.9;
+        font-weight: 300;
+    }
+
+    .masthead .btn-masthead {
+        background: #fff;
+        color: #00555a;
+        border: none;
+        border-radius: 40px;
+        padding: 0.8rem 2.5rem;
+        font-weight: 700;
+        font-size: 1.1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        transition: all 0.25s;
+        text-decoration: none;
+        display: inline-block;
+        margin: 0 0.5rem;
+    }
+
+    .masthead .btn-masthead:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+        color: #00555a;
+        text-decoration: none;
+    }
+
+    .masthead .btn-masthead-outline {
+        background: transparent;
+        border: 2px solid #fff;
+        color: #fff;
+        border-radius: 40px;
+        padding: 0.8rem 2.5rem;
+        font-weight: 700;
+        font-size: 1.1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        transition: all 0.25s;
+        text-decoration: none;
+        display: inline-block;
+        margin: 0 0.5rem;
+    }
+
+    .masthead .btn-masthead-outline:hover {
+        background: #fff;
+        color: #00555a;
+        transform: translateY(-3px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+        text-decoration: none;
+    }
+
+    /* ----- Section styling ----- */
+    .page-section {
+        padding: 4rem 0;
+    }
+
+    .page-section .section-heading {
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: #1e2a36;
+        margin-bottom: 0.25rem;
+    }
+
+    .page-section .section-subheading {
+        font-size: 1.1rem;
+        font-weight: 400;
+        color: #6c757d;
+        margin-bottom: 2.5rem;
+        font-style: italic;
+    }
+
+    .section-divider {
+        width: 60px;
+        height: 4px;
+        background: linear-gradient(90deg, #23adad, #00555a);
+        margin: 0.5rem auto 2rem;
+        border-radius: 4px;
+    }
+
+    .section-divider.left {
+        margin-left: 0;
+    }
+
+    /* ----- Service cards ----- */
+    .service-card {
+        background: #fff;
+        border-radius: 20px;
+        padding: 2rem 1.5rem;
+        box-shadow: 0 10px 30px -8px rgba(0, 0, 0, 0.06);
+        text-align: center;
+        height: 100%;
+        transition: transform 0.25s;
+    }
+
+    .service-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.12);
+    }
+
+    .service-card .service-icon {
+        font-size: 2.8rem;
+        color: #23adad;
+        margin-bottom: 1rem;
+    }
+
+    .service-card .service-title {
+        font-weight: 700;
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+        color: #1e2a36;
+        word-break: break-word;
+    }
+
+    .service-card .service-desc {
+        color: #6c757d;
+        font-size: 0.95rem;
+        line-height: 1.6;
+    }
+
+    /* ----- How it works (steps) ----- */
+    .step-circle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #23adad 0%, #00555a 100%);
+        color: #fff;
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+
+    .step-card {
+        text-align: center;
+        padding: 1rem;
+    }
+
+    .step-card .step-title {
+        font-weight: 700;
+        font-size: 1.2rem;
+        color: #1e2a36;
+    }
+
+    .step-card .step-desc {
+        color: #6c757d;
+        font-size: 0.95rem;
+    }
+
+    /* ----- About section with dummy chart ----- */
+    .about-text {
+        font-size: 1.05rem;
+        line-height: 1.8;
+        color: #4a5568;
+    }
+
+    .about-image {
+        background: #fff;
+        border-radius: 20px;
+        width: 100%;
+        height: 220px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 10px 30px -8px rgba(0, 0, 0, 0.06);
+        padding: 1rem;
+        position: relative;
+    }
+
+    .about-image canvas {
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    /* ----- Call to action (final) ----- */
+    .cta-section {
+        background: linear-gradient(135deg, #23adad 0%, #00555a 100%);
+        padding: 4rem 0;
+        color: #fff;
+        text-align: center;
+        margin-top: 2rem;
+    }
+
+    .cta-section .cta-title {
+        font-size: 2.2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .cta-section .cta-text {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        max-width: 600px;
+        margin: 0 auto 2rem;
+    }
+
+    .cta-section .btn-cta {
+        background: #fff;
+        color: #00555a;
+        border: none;
+        border-radius: 40px;
+        padding: 0.8rem 2.5rem;
+        font-weight: 700;
+        font-size: 1.1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        transition: all 0.25s;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .cta-section .btn-cta:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+        color: #00555a;
+        text-decoration: none;
+    }
+
+    /* ----- Responsive ----- */
+    @media (max-width: 768px) {
+        .masthead {
+            padding: 4rem 1rem;
+        }
+        .masthead .masthead-heading {
+            font-size: 2.5rem;
+        }
+        .masthead .btn-masthead,
+        .masthead .btn-masthead-outline {
+            display: block;
+            margin: 0.5rem auto;
+            width: 80%;
+        }
+        .page-section .section-heading {
+            font-size: 1.8rem;
+        }
+        .service-card {
+            margin-bottom: 1.5rem;
+        }
+        .step-card {
+            margin-bottom: 2rem;
+        }
+        .cta-section .cta-title {
+            font-size: 1.8rem;
+        }
+        .about-image {
+            height: 180px;
+            margin-top: 1.5rem;
+        }
+    }
+</style>
+
+<!-- MASTHEAD -->
+
+<div class="masthead">
+    <div class="container">
+        <div class="masthead-subheading">Smart Finance Tracking</div>
+        <div class="masthead-heading">Take Control of Your Money</div>
+        <div class="masthead-text">
+            Upload your bank statements, categorise transactions, split expenses with friends,
+            and visualise your spending, all in one place.
+        </div>
+        <div>
+            <a href="{% url 'register' %}" class="btn-masthead">Get Started</a>
+            <a href="{% url 'login' %}" class="btn-masthead-outline">Log In</a>
+        </div>
+    </div>
 </div>
 
-<h3>Registered Users</h3>
-{% for account in accounts %}
-    <p>{{account.username}}</p>
-{% endfor %}
+<!-- SERVICES / FEATURES -->
+
+<section class="page-section">
+    <div class="container">
+        <div class="text-center">
+            <h2 class="section-heading">Features</h2>
+            <div class="section-divider"></div>
+            <p class="section-subheading">Everything you need to manage your personal finances</p>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-3">
+                <div class="service-card">
+                    <div class="service-icon"><i class="fas fa-file-upload"></i></div>
+                    <h4 class="service-title">Excel Import</h4>
+                    <p class="service-desc">
+                        Upload your bank debit or credit card Excel files. Transactions are automatically parsed and stored.
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="service-card">
+                    <div class="service-icon"><i class="fas fa-tags"></i></div>
+                    <h4 class="service-title">Categorisation</h4>
+                    <p class="service-desc">
+                        Label, filter and organise your transactions to better visualise spending habbits.
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="service-card">
+                    <div class="service-icon"><i class="fas fa-user-friends"></i></div>
+                    <h4 class="service-title">Split Expenses</h4>
+                    <p class="service-desc">
+                        Quickly and easily split transactions up between friends or partners to see who owes what.
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="service-card">
+                    <div class="service-icon"><i class="fas fa-chart-line"></i></div>
+                    <h4 class="service-title">Analytics &amp; Charts</h4>
+                    <p class="service-desc">
+                        Visualise your spending trends and track net balance over time.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ABOUT -->
+
+<section class="page-section bg-light" style="background: #f0f2f5;">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h2 class="section-heading" style="font-size: 2rem;">About Finance Tracker</h2>
+                <div class="section-divider left"></div>
+                <div class="about-text">
+                    <p>
+                        Finance Tracker provides a clear overview of your finances. Whether you are managing
+                        daily expenses, planning a budget, or keeping track of shared costs with friends,
+                        our tool helps you stay organised.
+                    </p>
+                    <p>
+                        All your data is stored securely. You can export reports and view interactive charts
+                        to understand your spending behaviour.
+                    </p>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="about-image">
+                    <canvas id="dummyChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- HOW IT WORKS -->
+
+<section class="page-section">
+    <div class="container">
+        <div class="text-center">
+            <h2 class="section-heading">How It Works</h2>
+            <div class="section-divider"></div>
+            <p class="section-subheading">Three simple steps to get started</p>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="step-card">
+                    <div class="step-circle">1</div>
+                    <h4 class="step-title">Upload your data</h4>
+                    <p class="step-desc">
+                        Download your debit/credit card statement as an Excel file from your bank and upload it.
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="step-card">
+                    <div class="step-circle">2</div>
+                    <h4 class="step-title">Categorise &amp; split</h4>
+                    <p class="step-desc">
+                        Automatically categorise transactions or manually adjust. Split shared costs with friends.
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="step-card">
+                    <div class="step-circle">3</div>
+                    <h4 class="step-title">Analyse &amp; act</h4>
+                    <p class="step-desc">
+                        View charts, track your net balance, and export reports for your records.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FINAL CALL TO ACTION -->
+
+<div class="cta-section">
+    <div class="container">
+        <div class="cta-title">Ready to take control?</div>
+        <div class="cta-text">
+            Join other users who are already tracking their finances.
+        </div>
+        <a href="{% url 'register' %}" class="btn-cta">Sign Up Now</a>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('dummyChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'Net Balance',
+                    data: [120, 190, 80, 210, 150, 230],
+                    borderColor: '#23adad',
+                    backgroundColor: 'rgba(35, 173, 173, 0.1)',
+                    fill: true,
+                    tension: 0.2,
+                    pointBackgroundColor: '#00555a',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        grid: { color: '#e2e8f0' },
+                        ticks: { callback: function(value) { return value + ' kr'; } }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    });
+</script>
 
 {% endblock content %}

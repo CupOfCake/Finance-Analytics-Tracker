@@ -1,7 +1,159 @@
-<hr>
-<p>2026 Finance Tracker.</p>
+<!-- snippets/footer.html -->
+<style>
+    .site-footer {
+        background: #ffffff;
+        border-top: 1px solid #e5e7eb;
+        padding: 2rem 0 1.5rem;
+        margin-top: 0;
+        font-family: 'Poppins', sans-serif;
+        color: #1e2a36;
+    }
 
+    .site-footer h5 {
+        font-weight: 700;
+        font-size: 1rem;
+        letter-spacing: 0.5px;
+        color: #1e2a36;
+        margin-bottom: 1rem;
+    }
 
+    .site-footer ul {
+        padding-left: 0;
+        list-style: none;
+        margin-bottom: 0;
+    }
+
+    .site-footer ul li {
+        margin-bottom: 0.4rem;
+    }
+
+    .site-footer a {
+        color: #4a5568;
+        text-decoration: none;
+        transition: color 0.2s;
+        font-size: 0.9rem;
+    }
+
+    .site-footer a:hover {
+        color: #23adad;
+        text-decoration: underline;
+    }
+
+    .site-footer .footer-text {
+        font-size: 0.9rem;
+        color: #4a5568;
+        line-height: 1.6;
+        opacity: 0.8;
+        max-width: 280px;
+    }
+
+    .site-footer .contact-item {
+        font-size: 0.9rem;
+        color: #4a5568;
+        opacity: 0.8;
+        margin-bottom: 0.4rem;
+    }
+
+    .site-footer .contact-item i {
+        width: 1.25rem;
+        color: #23adad;
+    }
+
+    .site-footer hr {
+        border-top: 1px solid #e5e7eb;
+        opacity: 1;
+        margin: 1.5rem 0 1rem;
+    }
+
+    .site-footer .copyright {
+        font-size: 0.8rem;
+        color: #6c757d;
+        opacity: 0.7;
+        text-align: center;
+    }
+
+    /* ---- Vertical dividers ---- */
+    .footer-col {
+        padding: 0 15px;
+    }
+
+    /* Add left border to columns 2 and 3 (md and up) */
+    @media (min-width: 768px) {
+        .footer-col.divider {
+            border-left: 1px solid #e5e7eb;
+            padding-left: 30px;
+        }
+        /* Remove extra padding from column 1 so it aligns nicely */
+        .footer-col:first-child {
+            padding-right: 30px;
+        }
+    }
+
+    @media (max-width: 767px) {
+        .footer-col {
+            margin-bottom: 1.5rem;
+        }
+        .footer-col:last-child {
+            margin-bottom: 0;
+        }
+        .site-footer .footer-text {
+            max-width: 100%;
+        }
+        .footer-col.divider {
+            border-left: none;
+            padding-left: 15px;
+        }
+        .footer-col:first-child {
+            padding-right: 15px;
+        }
+    }
+</style>
+
+<footer class="site-footer">
+    <div class="container">
+        <div class="row">
+            <!-- Company -->
+            <div class="col-md-4 footer-col">
+                <h5>Finance Tracker</h5>
+                <p class="footer-text">
+                    A simple tool to manage your personal finances, upload bank statements, categorise transactions, and track your spending.
+                </p>
+            </div>
+
+            <!-- Useful Links -->
+            <div class="col-md-4 footer-col divider">
+                <h5>Useful Links</h5>
+                <ul>
+                    <li><a href="{% url 'account' %}">Your Account</a></li>
+                    <li><a href="{% url 'password_reset' %}">Password Reset</a></li>
+                    <!-- <li><a href="#">Help &amp; Support</a></li> -->
+                </ul>
+            </div>
+
+            <!-- Contact -->
+            <div class="col-md-4 footer-col divider">
+                <h5>Contact</h5>
+                <div class="contact-item">
+                    <i class="fas fa-map-marker-alt"></i> Bessastaðir, 225 Álftanes
+                </div>
+                <div class="contact-item">
+                    <i class="fas fa-envelope"></i> support@financetracker.com
+                </div>
+                <div class="contact-item">
+                    <i class="fas fa-phone"></i> +354 123 4567
+                </div>
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="copyright">
+            &copy; {% now "Y" %} Finance Tracker. All rights reserved.
+        </div>
+    </div>
+</footer>
+
+<!-- Bootstrap JS etc. -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.min.js" integrity="sha384-G/EV+4j2dNv+tEPo3++6LCgdCROaejBqfUeNjuKAiuXbjrxilcCdDz6ZAVfHWe1Y" crossorigin="anonymous"></script>
