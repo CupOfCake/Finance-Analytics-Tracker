@@ -66,6 +66,8 @@ class Account(AbstractBaseUser):
                         help_text="Select a partner for 50/50 splits."
     )
 
+    legal_name      = models.CharField(max_length=100, null=True, blank=True) #this should not be null as it is required for filtering out redundant transaction info.
+
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', ]
 
@@ -81,3 +83,19 @@ class Account(AbstractBaseUser):
         return True
 
 
+# for allowing the user to sort transactions in to categories which can be used for filtering or reporting.
+# label example: "Groceries", "Fuel", "Entertainment", "Bills", "Rent", "Salary", "Other"
+class TransactionLabels(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='transaction_labels'
+    )
+    label               = models.CharField(max_length=50, null=False, blank=False)
+    transaction_name    = models.CharField(max_length=50, null=False, blank=False)
+
+    class Meta:
+        unique_together = [['user', 'label']]
+
+    def __str__(self):
+        return f"{self.user} label: {self.label} for {self.transaction_name}"

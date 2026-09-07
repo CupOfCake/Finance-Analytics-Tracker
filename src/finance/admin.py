@@ -34,6 +34,9 @@ class TransactionAdmin(admin.ModelAdmin):
         'date_published',
         'date_updated',
     )
+
+    list_max_show_all = 1000
+    list_per_page = 500
     
     ordering = ('-transaction_date',)   # show newest first
 

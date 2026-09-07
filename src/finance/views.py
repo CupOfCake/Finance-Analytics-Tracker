@@ -15,6 +15,8 @@ from django.contrib.auth.decorators import login_required
 from .models import Transaction, TransactionSplit
 from django.contrib.auth import get_user_model
 
+from django.db.models import Q
+
 User = get_user_model()
 
 @login_required
@@ -68,59 +70,123 @@ def upload_transactions(request):
                 return redirect('account')
 
             try:
-                df = pd.read_excel(excel_file, engine='openpyxl')
-                required_cols = ['Dagsetning', 'Innlend upphæð', 'Lýsing', 'Heimildarnúmer']
-                if not all(col in df.columns for col in required_cols):
-                    messages.error(request, f'Invalid file format. Expected columns: {", ".join(required_cols)}')
-                    return redirect('account')
+                # Read the file without assuming header row first
+                # Try header=0 (credit card format)
+                df_credit = pd.read_excel(excel_file, engine='openpyxl', header=0)
+                credit_cols = ['Dagsetning', 'Innlend upphæð', 'Lýsing', 'Heimildarnúmer']
+                if all(col in df_credit.columns for col in credit_cols):
+                    # Credit card format
+                    df = df_credit
+                    parser = 'credit'
+                else:
+                    # Try header=3 (debit/account format)
+                    df_debit = pd.read_excel(excel_file, engine='openpyxl', header=3)
+                    debit_cols = ['Dagsetning', 'Upphæð', 'Skýring', 'Texti', 'Einkvæmur lykill', 'Nafn viðtakanda eða greiðanda']
+                    if all(col in df_debit.columns for col in debit_cols):
+                        df = df_debit
+                        parser = 'debit'
+                    else:
+                        messages.error(request, 'Unrecognized file format. Expected Arion credit card or debit/account export.')
+                        return redirect('account')
 
                 created_count = 0
                 skipped_count = 0
 
-                for _, row in df.iterrows():
-                    tID = row['Heimildarnúmer']
-                    if pd.isna(tID):
-                        continue
+                if parser == 'credit':
+                    for _, row in df.iterrows():
+                        tID = row['Heimildarnúmer']
+                        description = str(row['Lýsing']) if not pd.isna(row['Lýsing']) else ''
 
-                    date_val = row['Dagsetning']
-                    if isinstance(date_val, pd.Timestamp):
-                        transaction_date = date_val.to_pydatetime()
-                    else:
-                        # fallback for string dates
-                        transaction_date = pd.to_datetime(date_val).to_pydatetime()
+                        # Special handling for Útskriftargjald (statement fee)
+                        if pd.isna(tID) and 'Útskriftargjald' in description:
+                            # Use a dummy transaction_id (e.g., -1)
+                            # To avoid conflicts if multiple such fees on the same date, we can use -1 - month? but date is different, so -1 is fine.
+                            tID = -1
 
-                    # Make the datetime timezone-aware
-                    transaction_date = make_aware(transaction_date)
+                        if pd.isna(tID):
+                            continue  # skip other rows without a valid ID
 
-                    amount = int(row['Innlend upphæð'])
-                    description = str(row['Lýsing'])
+                        date_val = row['Dagsetning']
+                        if isinstance(date_val, pd.Timestamp):
+                            transaction_date = date_val.to_pydatetime()
+                        else:
+                            transaction_date = pd.to_datetime(date_val).to_pydatetime()
+                        transaction_date = make_aware(transaction_date)
 
-                    if ' - ' in description:
-                        parts = description.rsplit(' - ', 1)
-                        transaction_type = parts[1].strip()
-                        transaction_name = parts[0].strip()
-                    else:
-                        transaction_type = 'Unknown'
-                        transaction_name = description
+                        amount = int(row['Innlend upphæð'])
 
-                    try:
-                        Transaction.objects.create(
-                            user=request.user,
-                            transaction_id=int(tID),
-                            transaction_date=transaction_date,
-                            transaction_ammount=amount,
-                            transaction_name=transaction_name,
-                            transaction_type=transaction_type,
-                        )
-                        created_count += 1
-                    except IntegrityError:
-                        skipped_count += 1
+                        if ' - ' in description:
+                            parts = description.rsplit(' - ', 1)
+                            transaction_type = parts[1].strip()
+                            transaction_name = parts[0].strip()
+                        else:
+                            transaction_type = 'Unknown'
+                            transaction_name = description
+
+                        try:
+                            Transaction.objects.create(
+                                user=request.user,
+                                transaction_id=int(tID),
+                                transaction_date=transaction_date,
+                                transaction_ammount=amount,
+                                transaction_name=transaction_name,
+                                transaction_type=transaction_type,
+                            )
+                            created_count += 1
+                        except IntegrityError:
+                            skipped_count += 1
+
+                else:  # debit
+                    username = request.user.username
+                    for _, row in df.iterrows():
+                        tID = row['Einkvæmur lykill']
+                        if pd.isna(tID):
+                            continue
+
+                        date_val = row['Dagsetning']
+                        if isinstance(date_val, pd.Timestamp):
+                            transaction_date = date_val.to_pydatetime()
+                        else:
+                            transaction_date = pd.to_datetime(date_val).to_pydatetime()
+                        transaction_date = make_aware(transaction_date)
+
+                        amount = int(row['Upphæð'])
+                        description = str(row['Skýring']) if not pd.isna(row['Skýring']) else ''
+                        counterparty = str(row['Nafn viðtakanda eða greiðanda']) if not pd.isna(row['Nafn viðtakanda eða greiðanda']) else ''
+                        transaction_type = str(row['Texti']) if not pd.isna(row['Texti']) else ''
+
+                        # Skip if "Arion banki hf." appears in description or counterparty
+                        if 'arion banki hf.' in description.lower() or 'arion banki hf.' in counterparty.lower():
+                            continue
+
+                        # Skip if both description and counterparty contain the username
+                        if description and counterparty:
+                            if username.lower() in description.lower() and username.lower() in counterparty.lower():
+                                continue
+
+                        # Build transaction name
+                        if counterparty:
+                            transaction_name = f"{description} - {counterparty}" if description else counterparty
+                        else:
+                            transaction_name = description or 'Unknown'
+
+                        try:
+                            Transaction.objects.create(
+                                user=request.user,
+                                transaction_id=int(tID),
+                                transaction_date=transaction_date,
+                                transaction_ammount=amount,
+                                transaction_name=transaction_name,
+                                transaction_type=transaction_type,
+                            )
+                            created_count += 1
+                        except IntegrityError:
+                            skipped_count += 1
 
                 request.session['upload_results'] = {
                     'created': created_count,
                     'skipped': skipped_count
                 }
-
                 messages.success(
                     request,
                     f'Successfully added {created_count} transactions. '
@@ -135,4 +201,68 @@ def upload_transactions(request):
 
         return redirect('account')
 
+    return redirect('account')
+
+
+@login_required
+def delete_transaction(request, transaction_pk,):
+    if request.method == 'POST':
+        try:
+            transaction = Transaction.objects.get(pk=transaction_pk, user=request.user)
+            transaction.delete()
+            messages.success(request, 'Transaction deleted successfully.')
+        except Transaction.DoesNotExist:
+            messages.error(request, 'Transaction not found.')
+    else:
+        messages.error(request, 'Invalid request method.')
+
+    return redirect('account')
+
+
+@login_required
+def delete_filtered_transactions(request):
+    if request.method != 'POST':
+        messages.error(request, 'Invalid request method.')
+        return redirect('account')
+    
+    # Get filters from POST (same as GET parameters)
+    year = request.POST.get('year')
+    month = request.POST.get('month')
+    q = request.POST.get('q', '').strip()
+    income = request.POST.get('income')
+    expense = request.POST.get('expense')
+    amount_min = request.POST.get('amount_min')
+    amount_max = request.POST.get('amount_max')
+    
+    # Build queryset with same filters as account_view
+    transactions_qs = Transaction.objects.filter(user=request.user)
+    
+    if year and year.isdigit():
+        transactions_qs = transactions_qs.filter(transaction_date__year=year)
+    if month and month.isdigit():
+        transactions_qs = transactions_qs.filter(transaction_date__month=month)
+    if q:
+        transactions_qs = transactions_qs.filter(
+            Q(transaction_name__icontains=q) |
+            Q(transaction_type__icontains=q)
+        )
+    if income and not expense:
+        transactions_qs = transactions_qs.filter(transaction_ammount__gt=0)
+    elif expense and not income:
+        transactions_qs = transactions_qs.filter(transaction_ammount__lt=0)
+    if amount_min and amount_min.lstrip('-').isdigit():
+        transactions_qs = transactions_qs.filter(transaction_ammount__gte=int(amount_min))
+    if amount_max and amount_max.lstrip('-').isdigit():
+        transactions_qs = transactions_qs.filter(transaction_ammount__lte=int(amount_max))
+    
+    count = transactions_qs.count()
+    
+    if count == 0:
+        messages.warning(request, 'No transactions found matching the current filters.')
+        return redirect('account')
+    
+    # Delete all matching transactions
+    transactions_qs.delete()
+    
+    messages.success(request, f'Successfully deleted {count} transaction{"s" if count != 1 else ""}.')
     return redirect('account')
